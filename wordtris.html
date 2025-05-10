@@ -496,6 +496,7 @@
     // --- Fine Modifica ---
     
     // --- MODIFICA: Liste di sillabe e probabilità ---
+    const SYLS_1_LETTER = ["A", "E", "I", "O", "U"]; // Aggiungiamo le vocali singole
     const SYLS_2_LETTERS = [ // ESPANDI QUESTA LISTA!
         "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
         "LE", "RI", "ME", "TE", "BO", "DO", "NA", "BI", "CO", "DA", "DI", "FA", "FE", "FI", "FO", "FU", "GA", "GE",
@@ -510,7 +511,8 @@
         "TER", "MEN", "SEN", "CON", "ENT", "INT", "CIO", "CIA"
         // Aggiungi sillabe da 3 lettere comuni e utili per formare parole
     ]; 
-    const PROB_THREE_LETTER_SYL = 0.20; // Esempio: 20% probabilità per sillaba da 3 lettere
+    const PROB_ONE_LETTER_SYL = 0.15; // 15% probabilità per vocali singole
+    const PROB_THREE_LETTER_SYL = 0.20; // 20% probabilità per sillaba da 3 lettere
     // --- Fine Modifica ---
 
     const DICT = new Set();
@@ -531,16 +533,28 @@
 
     const ui = { s: document.getElementById("score"), w: document.getElementById("words"), p: document.getElementById("pieces"), vowelSelection: document.getElementById("vowel-selection"), lastWordVal: document.getElementById("last-word-val") };
 
-    // --- MODIFICA: randSyl aggiornata ---
+    // --- MODIFICA: randSyl aggiornata per includere vocali singole ---
     function randSyl() {
-        const useThreeLetter = Math.random() < PROB_THREE_LETTER_SYL;
-
-        if (useThreeLetter&&SYLS_3_LETTERS.length > 0) {
-            return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
-        } else if (SYLS_2_LETTERS.length > 0) {
+        const rand = Math.random();
+        
+        // Prima verifica se generare una vocale singola
+        if (rand < PROB_ONE_LETTER_SYL) {
+            return SYLS_1_LETTER[Math.floor(Math.random() * SYLS_1_LETTER.length)];
+        }
+        // Quindi verifica se generare una sillaba da 3 lettere
+        else if (rand < PROB_ONE_LETTER_SYL + PROB_THREE_LETTER_SYL) {
+            if (SYLS_3_LETTERS.length > 0) {
+                return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
+            }
+        }
+        
+        // Altrimenti genera una sillaba da 2 lettere
+        if (SYLS_2_LETTERS.length > 0) {
             return SYLS_2_LETTERS[Math.floor(Math.random() * SYLS_2_LETTERS.length)];
         } else if (SYLS_3_LETTERS.length > 0) { 
             return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
+        } else if (SYLS_1_LETTER.length > 0) {
+            return SYLS_1_LETTER[Math.floor(Math.random() * SYLS_1_LETTER.length)];
         } else {
             console.error("ERRORE: Tutte le liste di sillabe sono vuote!");
             return "??"; 
