@@ -181,6 +181,11 @@
         <!-- <source src="audio/background_music.ogg" type="audio/ogg"> -->
     </audio>
     
+    <!-- Audio hurry-up per la scelta vocale -->
+    <audio id="hurry-up-sound" preload="auto">
+        <source src="audio/hurry-up.mp3" type="audio/mp3">
+    </audio>
+    
 <script>
     const COLS = 10, ROWS = 20, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
     
@@ -188,6 +193,7 @@
     const AudioSystem = {
         audioContext: null,
         backgroundMusic: document.getElementById('background-music'),
+        hurryUpSound: document.getElementById('hurry-up-sound'),
         sfxGainNode: null,
         backgroundMusicActive: true,
         backgroundMusicLoaded: false,
@@ -344,7 +350,17 @@
                     if (this.sfxGainNode) {
                         this.sfxGainNode.gain.value = parseInt(e.target.value) / 100;
                     }
+                    
+                    // Aggiorna anche il volume del suono hurry-up
+                    if (this.hurryUpSound) {
+                        this.hurryUpSound.volume = parseInt(e.target.value) / 100;
+                    }
                 });
+                
+                // Imposta il volume iniziale per hurry-up
+                if (this.hurryUpSound) {
+                    this.hurryUpSound.volume = parseInt(sfxVolumeSlider.value) / 100;
+                }
             }
             
             // AGGIUNTA: Rimuoviamo il focus dagli slider dopo l'interazione
@@ -429,6 +445,41 @@
                 this.playBackgroundMusic();
             } else {
                 this.stopBackgroundMusic();
+            }
+        },
+        
+        playHurryUp() {
+            if (!this.hurryUpSound) {
+                console.error("Elemento audio per il suono hurry-up non trovato");
+                return;
+            }
+            
+            try {
+                // Resetta il suono se stava già suonando
+                this.hurryUpSound.pause();
+                this.hurryUpSound.currentTime = 0;
+                
+                // Riproduci il suono
+                const playPromise = this.hurryUpSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn("Errore riproduzione suono hurry-up:", error);
+                    });
+                }
+            } catch (e) {
+                console.error("Errore riproduzione hurry-up:", e);
+            }
+        },
+        
+        stopHurryUp() {
+            if (!this.hurryUpSound) return;
+            
+            try {
+                this.hurryUpSound.pause();
+                this.hurryUpSound.currentTime = 0;
+            } catch (e) {
+                console.error("Errore arresto hurry-up:", e);
             }
         },
         
@@ -530,6 +581,7 @@
     let currentDropInterval = START_DROP; 
     let chainCount = 0;     // Definizione della variabile chainCount
     let currentChainMultiplier = 1.0;  // Definizione della variabile currentChainMultiplier
+    let isHurryUpPlaying = false;  // Flag per monitorare se hurry-up è in riproduzione
 
     const ui = { s: document.getElementById("score"), w: document.getElementById("words"), p: document.getElementById("pieces"), vowelSelection: document.getElementById("vowel-selection"), lastWordVal: document.getElementById("last-word-val") };
 
@@ -625,7 +677,7 @@
         }
         for (let i = 0; i < cur.h; i++) {
             const r_check = cur.y + i, c_check = cur.x;
-            if (r_check >=0&&cur.txt[i].endsWith("*")) {
+            if (r_check >= 0&&cur.txt[i].endsWith("*")) {
                 needsVowelChoice = true;
                 vowelChoiceCellInfo = { r: r_check, c: c_check, prefix: cur.txt[i].slice(0, -1) };
                 break; 
@@ -634,8 +686,10 @@
         cur = null; 
         draw(); 
         if (needsVowelChoice) {
-            // Riproduci il suono per la selezione della vocale
-            playSound('selectVowel');
+            // Invece di riprodurre il suono sintetizzato, riproduci il file hurry-up.mp3
+            // Riproduci il suono hurry-up quando appare il menu di scelta vocale
+            AudioSystem.playHurryUp();
+            isHurryUpPlaying = true;
             
             isVowelChoiceActive = true; 
             ui.vowelSelection.style.display = "block"; 
@@ -670,6 +724,13 @@
         if (!isVowelChoiceActive) return;
         clearTimeout(vowelChoiceTimerId); document.removeEventListener('keydown', handleVowelKeyboardChoice);
         ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false;
+        
+        // Interrompi il suono hurry-up quando viene scelta una vocale o scade il tempo
+        if (isHurryUpPlaying) {
+            AudioSystem.stopHurryUp();
+            isHurryUpPlaying = false;
+        }
+        
         if (chosenVowel&&vowelChoiceCellInfo) {
             const { r, c, prefix } = vowelChoiceCellInfo;
             if (r>=0&&r<ROWS&&c>=0&&c<COLS&&board[r]&&board[r][c] === prefix + "*") board[r][c] = prefix + chosenVowel;
@@ -896,6 +957,7 @@
         gameIsOver = false; isVowelChoiceActive = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
         isNextPieceBomb = false; bombPower = 0; 
         chainCount = 0; currentChainMultiplier = 1.0; 
+        isHurryUpPlaying = false;
 
         clearTimeout(vowelChoiceTimerId); if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
         document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none";
@@ -920,6 +982,13 @@
     function handleGameOver() {
         if (gameIsOver) return; gameIsOver = true; 
         clearInterval(gameLoopTimer); clearTimeout(vowelChoiceTimerId);
+        
+        // Interrompi il suono hurry-up se è in riproduzione
+        if (isHurryUpPlaying) {
+            AudioSystem.stopHurryUp();
+            isHurryUpPlaying = false;
+        }
+        
         if (isVowelChoiceActive) { document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false; }
         draw(); 
         setTimeout(() => { alert(`GAME OVER\nPunti ${score}\nParole ${words}\nPezzi ${pieces}`); loadDictionaryAndInitGame(); }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
