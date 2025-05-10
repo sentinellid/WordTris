@@ -1,0 +1,1 @@
+Il file allegato è un gioco che unisce le dinamiche di tetris con la composizione delle parole.  in pratica cadono una serie di sillabe, una per quadratino, e il giocatore deve comporre semplici parole partendo da un dizionario interno. 

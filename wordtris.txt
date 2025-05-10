@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8"/>
+    <title>WordTris</title>
+    <style>
+        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; }
+        #game { margin: 20px auto; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
+        .cell { background: #383838; display: flex; align-items: center; justify-content: center; font: 600 15px monospace; overflow: hidden; user-select: none; border-radius: 5px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; }
+        .filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
+        .joker-cell { background: linear-gradient(145deg, #e04040, #b30000); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(255, 80, 80, 0.6); }
+        .bomb-cell { background: linear-gradient(145deg, #555, #222); color: #ffcc00; font-size: 20px; border: 2px outset #777; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.6), 0 0 10px rgba(255, 165, 0, 0.7); }
+        .cell.clearing { animation: cellClearAnimation 0.5s forwards; position: relative; z-index: 100; }
+        @keyframes cellClearAnimation { 0% { transform: scale(1.0); opacity: 1; background-color: #ffdd40; box-shadow: 0 0 15px #ffdd40; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0.3); opacity: 0; background-color: transparent; box-shadow: none; } }
+        .piece-moved-feedback { outline: 1px solid rgba(255, 255, 0, 0.7); transition: outline 0.05s linear; }
+        #info { margin: 12px; font-size: 18px; line-height: 1.4; }
+        #vowel-selection { display: none; margin-top: 10px; font-size: 18px; }
+        .vowel { cursor: pointer; display: inline-block; padding: 10px; margin: 5px; background: #666; border-radius: 5px; color: white; box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+        .vowel:hover { background: #888; transform: translateY(-1px); }
+        .vowel:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
+        span.val { font-weight: bold; color: #7f7; }
+        #last-word-display { margin-top: 15px; font-size: 16px; color: #ccc; min-height: 3em; line-height: 1.5em; }
+        #last-word-display .val { color: #fa0; }
+    </style>
+</head>
+<body>
+    <h1>WordTris</h1>
+    <div id="game"></div>
+    <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
+    <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
+    <div id="vowel-selection">Scegli una vocale (o premi A,E,I,O,U): <div class="vowel" data-vowel="A">A</div><div class="vowel" data-vowel="E">E</div><div class="vowel" data-vowel="I">I</div><div class="vowel" data-vowel="O">O</div><div class="vowel" data-vowel="U">U</div></div>
+<script>
+    const COLS = 10, ROWS = 20, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    
+    // --- MODIFICA: Liste di sillabe e probabilità ---
+    const SYLS_2_LETTERS = [ // ESPANDI QUESTA LISTA!
+        "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
+        "LE", "RI", "ME", "TE", "BO", "DO", "NA", "BI", "CO", "DA", "DI", "FA", "FE", "FI", "FO", "FU", "GA", "GE",
+        "GI", "NI", "PI", "PO", "PU", "RO", "RU", "SE", "SI", "SU", "TA", 
+        "TO", "VI", "VO", "DE", "BA", "CE" 
+        // Aggiungi molte altre sillabe comuni da 2 lettere
+    ]; 
+    const SYLS_3_LETTERS = [ // ESPANDI QUESTA LISTA!
+        "PER", "TOR", "MAN", "CAN", "STR", "PRE", "GRA", "CES", "COS", "DAL", "DEL", "FRA", 
+        "GIA", "GLI", "NON", "PAR", "PIO", "PIU", "PRI", "PRO", "QUA", "QUE", "QUI", "SCA", "SCE",
+        "SCI", "STA", "STE", "STI", "STO", "TRA", "TRE", "TRI", "TRO", "VER", "VOL", "ZIO", "CAR",
+        "TER", "MEN", "SEN", "CON", "ENT", "INT", "CIO", "CIA"
+        // Aggiungi sillabe da 3 lettere comuni e utili per formare parole
+    ]; 
+    const PROB_THREE_LETTER_SYL = 0.20; // Esempio: 20% probabilità per sillaba da 3 lettere
+    // --- Fine Modifica ---
+
+    const DICT = new Set();
+    let dizionarioPronto = false;
+    const gameElement = document.getElementById("game");
+    for (let i = 0; i < ROWS * COLS; i++) { const d = document.createElement("div"); d.className = "cell"; gameElement.appendChild(d); }
+    const $ = q => document.querySelectorAll("#game .cell")[q];
+    const idx = (x, y) => (y * COLS + x);
+
+    let board, cur, gameLoopTimer, vowelChoiceTimerId, score = 0, words = 0, pieces = 0, gameIsOver = false, isVowelChoiceActive = false, vowelChoiceCellInfo = null;
+    let isAnimatingClear = false; 
+    let pendingBoardUpdateAfterAnimation = false;
+    let isNextPieceBomb = false; 
+    let bombPower = 0;      
+    let currentDropInterval = START_DROP; 
+
+    const ui = { s: document.getElementById("score"), w: document.getElementById("words"), p: document.getElementById("pieces"), vowelSelection: document.getElementById("vowel-selection"), lastWordVal: document.getElementById("last-word-val") };
+
+    // --- MODIFICA: randSyl aggiornata ---
+    function randSyl() {
+        const useThreeLetter = Math.random() < PROB_THREE_LETTER_SYL;
+
+        if (useThreeLetter && SYLS_3_LETTERS.length > 0) {
+            return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
+        } else if (SYLS_2_LETTERS.length > 0) {
+            return SYLS_2_LETTERS[Math.floor(Math.random() * SYLS_2_LETTERS.length)];
+        } else if (SYLS_3_LETTERS.length > 0) { 
+            return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
+        } else {
+            console.error("ERRORE: Tutte le liste di sillabe sono vuote!");
+            return "??"; 
+        }
+    }
+    // --- Fine Modifica ---
+
+    function newPiece() {
+        if (isNextPieceBomb) {
+            isNextPieceBomb = false; 
+            pieces++; ui.p.textContent = pieces;
+            return { x: COLS >> 1, y: -1, h: 1, txt: ["💣"], isBomb: true, power: bombPower };
+        }
+        const r = Math.random(), h_normal = r < .3 ? 1 : r < .75 ? 2 : 3; const txt = [];
+        while(txt.length < h_normal) { const s = randSyl(); if (!txt.includes(s)) txt.push(s); } // Usa la nuova randSyl
+        pieces++; ui.p.textContent = pieces;
+        if (txt.length > 0) {
+            const sylIndexToMakeJoker = txt.length - 1; 
+            const originalSyl = txt[sylIndexToMakeJoker];
+            // La condizione originalSyl.length > 1 è importante se le tue SYLS_2_LETTERS/SYLS_3_LETTERS
+            // dovessero contenere sillabe di una sola lettera (cosa che attualmente non fanno)
+            if (/[AEIOU]$/.test(originalSyl) && originalSyl.length > 1 && Math.random() < VOWEL_CHOICE_PROBABILITY) { 
+                txt[sylIndexToMakeJoker] = originalSyl.slice(0, -1) + "*";
+            }
+        }
+        return { x: COLS >> 1, y: -h_normal, h: txt.length, txt, isBomb: false };
+    }
+
+    function canMove(p, dx, dy) {
+        if (!p || isAnimatingClear) return false;
+        for (let i = 0; i < p.h; i++) {
+            const nx = p.x + dx, ny = p.y + i + dy;
+            if (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && board[ny][nx] && board[ny][nx] !== 'CLEARING_PLACEHOLDER')) return false;
+        }
+        return true;
+    }
+
+    function lockCurrentPiece() { 
+        if (!dizionarioPronto || isAnimatingClear) return;
+        clearInterval(gameLoopTimer); 
+
+        if (cur.isBomb) {
+            let landingRow = cur.y + cur.h - 1; 
+            for(let i = cur.h -1; i >= 0; i--){ 
+                if(cur.y + i >= ROWS -1 || (cur.y + i + 1 < ROWS && board[cur.y + i + 1] && board[cur.y + i + 1][cur.x])) { // Aggiunto check cur.y + i + 1 < ROWS
+                    landingRow = cur.y + i; break;
+                }
+            }
+            if (landingRow >= ROWS) landingRow = ROWS -1; 
+            detonateBomb(landingRow, cur.power, cur.x); 
+            cur = null;
+            processBoardAfterLock(); 
+            return; 
+        }
+
+        let needsVowelChoice = false; vowelChoiceCellInfo = null;
+        for (let i = 0; i < cur.h; i++) {
+            const r_lock = cur.y + i, c_lock = cur.x;
+            if (r_lock < 0) { draw(); handleGameOver(); return; }
+            board[r_lock][c_lock] = cur.txt[i];
+        }
+        for (let i = 0; i < cur.h; i++) {
+            const r_check = cur.y + i, c_check = cur.x;
+            if (r_check >=0 && cur.txt[i].endsWith("*")) {
+                needsVowelChoice = true;
+                vowelChoiceCellInfo = { r: r_check, c: c_check, prefix: cur.txt[i].slice(0, -1) };
+                break; 
+            }
+        }
+        cur = null; 
+        draw(); 
+        if (needsVowelChoice) {
+            isVowelChoiceActive = true; ui.vowelSelection.style.display = "block"; document.addEventListener('keydown', handleVowelKeyboardChoice);
+            clearTimeout(vowelChoiceTimerId); vowelChoiceTimerId = setTimeout(() => resolveVowelChoice(null), VOWEL_TIMEOUT);
+        } else {
+            processBoardAfterLock(); 
+        }
+    }
+
+    function detonateBomb(bombHitRow, numRowsToClear, bombCol) {
+        if (numRowsToClear <= 0) return;
+        let actualRowsCleared = 0;
+        for (let i = 0; i < numRowsToClear; i++) {
+            const rowToClear = bombHitRow - i; 
+            if (rowToClear >= 0 && rowToClear < ROWS) {
+                for (let c = 0; c < COLS; c++) board[rowToClear][c] = null; 
+                actualRowsCleared++; score += 50 * (i + 1); 
+            } else break; 
+        }
+    }
+
+    function handleVowelKeyboardChoice(e) {
+        if (!isVowelChoiceActive) return; const VOWELS = "AEIOU"; const keyPressed = e.key.toUpperCase();
+        if (VOWELS.includes(keyPressed)) { e.preventDefault(); resolveVowelChoice(keyPressed); }
+    }
+
+    document.querySelectorAll('.vowel').forEach(el => el.addEventListener('click', e => { if (isVowelChoiceActive) resolveVowelChoice(e.target.getAttribute('data-vowel')); }));
+
+    function resolveVowelChoice(chosenVowel) {
+        if (!isVowelChoiceActive) return;
+        clearTimeout(vowelChoiceTimerId); document.removeEventListener('keydown', handleVowelKeyboardChoice);
+        ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false;
+        if (chosenVowel && vowelChoiceCellInfo) {
+            const { r, c, prefix } = vowelChoiceCellInfo;
+            if (r>=0 && r<ROWS && c>=0 && c<COLS && board[r] && board[r][c] === prefix + "*") board[r][c] = prefix + chosenVowel;
+        }
+        vowelChoiceCellInfo = null; 
+        draw();
+        processBoardAfterLock();
+    }
+
+    function processBoardAfterLock() {
+        if (!dizionarioPronto || gameIsOver) return; 
+        if (isAnimatingClear) return; 
+        
+        pendingBoardUpdateAfterAnimation = false;
+        let iterations = 0; const MAX_ITERATIONS = ROWS * COLS; 
+        let stabilityReached = false;
+        let wordFoundThisOverallPBALCycle = false;
+
+        while (iterations < MAX_ITERATIONS && !stabilityReached && !gameIsOver && !isAnimatingClear) {
+            iterations++;
+            if (gameIsOver) break;
+            collapse(); draw();
+            if (isAnimatingClear) break; 
+
+            let wordFoundThisScanPass = false; 
+            if (scanAndClearHorizontalWords()) { wordFoundThisScanPass = true; wordFoundThisOverallPBALCycle = true; }
+            if (isAnimatingClear || gameIsOver) break;
+
+            if (scanAndClearVerticalWords()) { wordFoundThisScanPass = true; wordFoundThisOverallPBALCycle = true; }
+            if (isAnimatingClear || gameIsOver) break;
+
+            if (!wordFoundThisScanPass) stabilityReached = true; 
+        } 
+        
+        if (!isAnimatingClear && !gameIsOver) {
+            ui.s.textContent = score; ui.w.textContent = words;
+            cur = newPiece(); 
+            
+            if (cur.isBomb) { 
+                currentDropInterval = Math.floor(START_DROP / 3);
+            } else { 
+                currentDropInterval = START_DROP;
+            }
+            // console.log("PBAL new piece. Drop interval:", currentDropInterval);
+
+            if (!canMove(cur, 0, 0)) { draw(); handleGameOver(); return; }
+            draw();
+            if (!gameIsOver) {
+                clearInterval(gameLoopTimer); 
+                gameLoopTimer = setInterval(gameStep, currentDropInterval); 
+            }
+        }
+    }
+
+    function scanAndClearHorizontalWords() {
+        if (gameIsOver || isAnimatingClear) return false; let clearedAny = false;
+        for (let r = 0; r < ROWS; r++) {
+            let currentRun = [];
+            for (let c = 0; c < COLS; c++) {
+                const cellContent = board[r][c];
+                if (cellContent && !cellContent.endsWith("*") && cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, c: c });
+                else { if (currentRun.length >= 2 && processRunForWords(currentRun, r, true)) clearedAny = true; currentRun = []; }
+                if (isAnimatingClear) break; 
+            }
+            if (isAnimatingClear) break;
+            if (currentRun.length >= 2 && processRunForWords(currentRun, r, true)) clearedAny = true;
+        }
+        return clearedAny;
+    }
+
+    function scanAndClearVerticalWords() {
+        if (gameIsOver || isAnimatingClear) return false; let clearedAny = false;
+        for (let c = 0; c < COLS; c++) {
+            let currentRun = [];
+            for (let r = 0; r < ROWS; r++) {
+                const cellContent = board[r][c];
+                if (cellContent && !cellContent.endsWith("*") && cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, r: r });
+                else { if (currentRun.length >= 2 && processRunForWords(currentRun, c, false)) clearedAny = true; currentRun = []; }
+                if (isAnimatingClear) break;
+            }
+            if (isAnimatingClear) break;
+            if (currentRun.length >= 2 && processRunForWords(currentRun, c, false)) clearedAny = true;
+        }
+        return clearedAny;
+    }
+
+    function processRunForWords(run, fixedCoord, isHorizontal) {
+        if (gameIsOver || isAnimatingClear) return false;
+        for (let len = run.length; len >= 2; len--) {
+            for (let i = 0; i <= run.length - len; i++) {
+                const subRun = run.slice(i, i + len); const wordAttempt = subRun.map(item => item.syl).join("");
+                if (DICT.has(wordAttempt)) {
+                    let cellsAreValid = true;
+                    for(const item of subRun) { const r_val = isHorizontal ? fixedCoord : item.r; const c_val = isHorizontal ? item.c : fixedCoord; if(!board[r_val] || board[r_val][c_val] !== item.syl || board[r_val][c_val] === 'CLEARING_PLACEHOLDER') { cellsAreValid = false; break; }}
+                    if(cellsAreValid) {
+                        isAnimatingClear = true; clearInterval(gameLoopTimer);
+                        const cellsToAnimate = [];
+                        for (const item of subRun) { const r_anim = isHorizontal ? fixedCoord : item.r; const c_anim = isHorizontal ? item.c : fixedCoord; const cellElement = $(idx(c_anim, r_anim)); if (cellElement) { cellElement.classList.add('clearing'); cellsToAnimate.push({ r:r_anim, c:c_anim }); board[r_anim][c_anim] = 'CLEARING_PLACEHOLDER'; }}
+                        
+                        const numberOfSyllablesInGrid = subRun.length;
+                        let bombaAttivataQuestoTurno = false;
+                        if (numberOfSyllablesInGrid >= 3 && !isNextPieceBomb) { 
+                            isNextPieceBomb = true;
+                            bombPower = numberOfSyllablesInGrid - 2;
+                            bombaAttivataQuestoTurno = true;
+                        }
+                        score += wordAttempt.length * 10; words++;
+                        if (bombaAttivataQuestoTurno) {
+                            ui.lastWordVal.innerHTML = wordAttempt + `<br><span style="color:orange;font-weight:bold;">BOMBA PRONTA! (${bombPower} righe)</span>`;
+                        } else {
+                            ui.lastWordVal.textContent = wordAttempt;
+                        }
+                        
+                        setTimeout(() => {
+                            cellsToAnimate.forEach(cellCoords => { if (board[cellCoords.r] && board[cellCoords.r][cellCoords.c] === 'CLEARING_PLACEHOLDER') board[cellCoords.r][cellCoords.c] = null; const el = $(idx(cellCoords.c, cellCoords.r)); if (el) { el.classList.remove('clearing'); el.textContent = ""; el.className = "cell"; }});
+                            isAnimatingClear = false; pendingBoardUpdateAfterAnimation = true;
+                            if (!gameIsOver) processBoardAfterLock(); else draw(); 
+                        }, ANIMATION_CLEAR_DURATION);
+                        return true; 
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function collapse() {
+        if (gameIsOver || isAnimatingClear) return;
+        for (let c = 0; c < COLS; c++) {
+            let emptyRow = ROWS - 1;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                const cellContent = board[r][c];
+                if (cellContent && cellContent !== 'CLEARING_PLACEHOLDER') {
+                    if (r !== emptyRow) { board[emptyRow][c] = board[r][c]; board[r][c] = null; }
+                    emptyRow--;
+                }
+            }
+        }
+    }
+
+    function draw() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cellElement = $(idx(c, r));
+                if (cellElement) {
+                    const s_board = board[r][c];
+                    if (s_board === 'CLEARING_PLACEHOLDER') { if(!cellElement.classList.contains('clearing')) {} continue; }
+                    cellElement.textContent = s_board || "";
+                    if (s_board) {
+                        if (s_board === "💣") { 
+                            cellElement.className = "cell bomb-cell";
+                        } else {
+                            cellElement.className = s_board.endsWith("*") ? "cell joker-cell" : "cell filled";
+                        }
+                    } else {
+                        cellElement.className = "cell";
+                    }
+                }
+            }
+        }
+        if (cur && !gameIsOver && !isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => {
+                const r_cur = cur.y + i;
+                if (r_cur >= 0 && r_cur < ROWS) {
+                    const cellElement = $(idx(cur.x, r_cur));
+                    if (cellElement) { 
+                        if (board[r_cur] && board[r_cur][cur.x] === 'CLEARING_PLACEHOLDER') return;
+                        cellElement.textContent = s_cur; 
+                        if (cur.isBomb) { 
+                            cellElement.className = "cell bomb-cell";
+                        } else { 
+                            cellElement.className = s_cur.endsWith("*") ? "cell joker-cell" : "cell filled";
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function gameStep() {
+        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        if (canMove(cur, 0, 1)) cur.y++; else lockCurrentPiece(); 
+        if (cur && !gameIsOver && !isAnimatingClear) draw();
+    }
+
+    document.addEventListener("keydown", e => {
+        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        let moved = false; const currentPieceCells = [];
+        if (cur.isBomb) { 
+            if (e.code === "ArrowLeft" && canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (e.code === "ArrowRight" && canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (e.code === "ArrowDown" && canMove(cur, 0, 1)) { cur.y++; moved = true; }
+        } else { 
+            if (e.code === "ArrowLeft" && canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (e.code === "ArrowRight" && canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (e.code === "ArrowDown" && canMove(cur, 0, 1)) { cur.y++; moved = true; } 
+            else if (e.code === "ArrowUp" && cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
+        }
+
+        if(moved && !gameIsOver && !isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => { const r_cur = cur.y + i; if (r_cur >= 0 && r_cur < ROWS) { const cellElement = $(idx(cur.x, r_cur)); if (cellElement && (!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) currentPieceCells.push(cellElement); }});
+            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
+            draw();
+            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
+        }
+    });
+
+    function initializeActualGame() {
+        if (!dizionarioPronto) { console.error("InitializeActualGame: Dizionario non pronto."); return; }
+        gameIsOver = false; isVowelChoiceActive = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
+        isNextPieceBomb = false; bombPower = 0; 
+        chainCount = 0; currentChainMultiplier = 1.0; 
+
+        clearTimeout(vowelChoiceTimerId); if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+        document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none";
+        board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        score = 0; words = 0; pieces = 0; ui.s.textContent = 0; ui.w.textContent = 0; ui.p.textContent = 0; ui.lastWordVal.textContent = "---";
+        
+        cur = newPiece(); 
+        if (cur.isBomb) { 
+            currentDropInterval = Math.floor(START_DROP / 3);
+        } else { 
+            currentDropInterval = START_DROP;
+        }
+        
+        draw();
+        clearInterval(gameLoopTimer);
+        if (!isAnimatingClear && !gameIsOver) { gameLoopTimer = setInterval(gameStep, currentDropInterval); }
+    }
+
+    function handleGameOver() {
+        if (gameIsOver) return; gameIsOver = true; 
+        clearInterval(gameLoopTimer); clearTimeout(vowelChoiceTimerId);
+        if (isVowelChoiceActive) { document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false; }
+        draw(); 
+        setTimeout(() => { alert(`GAME OVER\nPunti ${score}\nParole ${words}\nPezzi ${pieces}`); loadDictionaryAndInitGame(); }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
+    }
+
+    async function loadDictionaryAndInitGame() {
+        gameIsOver = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false; clearInterval(gameLoopTimer);
+        DICT.clear(); dizionarioPronto = false; 
+        ui.lastWordVal.textContent = "CARICAMENTO...";
+        try {
+            const response = await fetch('data/dizionario.txt'); // Assicurati che questo path sia corretto
+            if (!response.ok) throw new Error(`Errore HTTP! Status: ${response.status} (${response.statusText}) per data/dizionario.txt`);
+            const text = await response.text(); const paroleCaricate = text.trim().split(/\r?\n/);
+            paroleCaricate.forEach(word => { const parolaPulita = word.trim().toUpperCase(); if (parolaPulita.length > 0) DICT.add(parolaPulita); });
+            if (DICT.size === 0 && paroleCaricate.length > 0) console.warn("Dizionario caricato ma DICT è vuoto.");
+            else if (DICT.size === 0) console.warn("Nessuna parola caricata nel dizionario.");
+            dizionarioPronto = true; ui.lastWordVal.textContent = "---"; initializeActualGame();
+        } catch (error) { console.error("Impossibile caricare il dizionario:", error); alert("Errore caricamento dizionario: " + error.message + "\nControlla console."); ui.lastWordVal.textContent = "ERRORE DIZIONARIO"; }
+    }
+    loadDictionaryAndInitGame();
+</script>
+</body>
+</html>
