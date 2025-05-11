@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WordTris</title>
     <style>
-        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 100px; }
-        #game { margin: 20px auto; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
+        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 90px; }
+        #game { margin: 10px auto 5px; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
         .cell { background: #383838; display: flex; align-items: center; justify-content: center; font: 600 15px monospace; overflow: hidden; user-select: none; border-radius: 5px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; }
         .filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
         .joker-cell { background: linear-gradient(145deg, #e04040, #b30000); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(255, 80, 80, 0.6); }
@@ -14,13 +14,13 @@
         .cell.clearing { animation: cellClearAnimation 0.5s forwards; position: relative; z-index: 100; }
         @keyframes cellClearAnimation { 0% { transform: scale(1.0); opacity: 1; background-color: #ffdd40; box-shadow: 0 0 15px #ffdd40; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0.3); opacity: 0; background-color: transparent; box-shadow: none; } }
         .piece-moved-feedback { outline: 1px solid rgba(255, 255, 0, 0.7); transition: outline 0.05s linear; }
-        #info { margin: 12px; font-size: 18px; line-height: 1.4; }
+        #info { margin: 8px; font-size: 16px; line-height: 1.2; }
         #vowel-selection { display: none; margin-top: 10px; font-size: 18px; }
         .vowel { cursor: pointer; display: inline-block; padding: 10px; margin: 5px; background: #666; border-radius: 5px; color: white; box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
         .vowel:hover { background: #888; transform: translateY(-1px); }
         .vowel:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
         span.val { font-weight: bold; color: #7f7; }
-        #last-word-display { margin-top: 15px; font-size: 16px; color: #ccc; min-height: 3em; line-height: 1.5em; }
+        #last-word-display { margin-top: 5px; font-size: 16px; color: #ccc; min-height: 2.5em; line-height: 1.3em; }
         #last-word-display .val { color: #fa0; }
         
         /* Timer per la selezione vocale */
@@ -165,13 +165,13 @@
             transform: translateY(0);
         }
 
-        /* NUOVI STILI PER CONTROLLI TOUCH */
+        /* NUOVI STILI PER CONTROLLI TOUCH - OTTIMIZZATI */
         #touch-controls {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            padding: 10px 0;
+            padding: 5px 0;
             background: rgba(20, 20, 20, 0.85);
             display: flex;
             justify-content: center;
@@ -210,6 +210,7 @@
                 grid-template-columns: repeat(10, 28px);
                 grid-auto-rows: 28px;
                 gap: 1px;
+                margin-top: 5px;
             }
             
             .cell {
@@ -217,8 +218,8 @@
             }
             
             .touch-button {
-                width: 50px;
-                height: 50px;
+                width: 55px;
+                height: 55px;
                 font-size: 20px;
             }
             
@@ -233,12 +234,27 @@
                 justify-content: center;
                 margin-top: 5px;
             }
+            
+            #info {
+                margin: 5px;
+                font-size: 14px;
+            }
+            
+            #last-word-display {
+                font-size: 14px;
+                min-height: 2.2em;
+            }
         }
         
         @media (max-width: 480px) {
+            body {
+                padding-bottom: 80px;
+            }
+            
             #game {
                 grid-template-columns: repeat(10, 24px);
                 grid-auto-rows: 24px;
+                margin-top: 3px;
             }
             
             .cell {
@@ -246,8 +262,13 @@
             }
             
             .touch-button {
-                width: 45px;
-                height: 45px;
+                width: 50px;
+                height: 50px;
+                font-size: 18px;
+            }
+            
+            #touch-controls {
+                padding: 3px 0;
             }
         }
 
@@ -272,7 +293,6 @@
         <button id="start-game-button">Inizia</button>
     </div>
 
-    <h1>WordTris</h1>
     <div id="game"></div>
     <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
     <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
@@ -298,22 +318,12 @@
         </div>
     </div>
     
-    <!-- NOVITÀ: Controlli touch per dispositivi mobili -->
+    <!-- Controlli touch per dispositivi mobili migliorati -->
     <div id="touch-controls">
         <div class="touch-button" id="touch-left">⬅️</div>
         <div class="touch-button" id="touch-rotate">🔄</div>
         <div class="touch-button" id="touch-right">➡️</div>
         <div class="touch-button" id="touch-down">⬇️</div>
-    </div>
-    
-    <!-- Controlli touch per mobile -->
-    <div id="touch-controls">
-        <div id="touch-controls-grid">
-            <button class="touch-button up">⬆️</button>
-            <button class="touch-button left">⬅️</button>
-            <button class="touch-button right">➡️</button>
-            <button class="touch-button down">⬇️</button>
-        </div>
     </div>
     
     <!-- Audio background nascosto -->
@@ -332,7 +342,8 @@
     </audio>
     
 <script>
-    const COLS = 10, ROWS = 20, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    // Riduzione di una riga: ROWS passa da 20 a 19
+    const COLS = 10, ROWS = 19, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
     
     // --- MODIFICA: Sistema audio completo con musica di sottofondo MP3 ---
     const AudioSystem = {
@@ -1279,101 +1290,6 @@
             repeatMoveTimer = null;
         }
     }
-
-    // --- AGGIUNTA: Funzioni per gestire i pulsanti touch ---
-    function handleTouchMove(direction) {
-        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
-        
-        let moved = false;
-        const currentPieceCells = [];
-        
-        if (cur.isBomb) {
-            switch(direction) {
-                case 'left':
-                    if (canMove(cur, -1, 0)) { cur.x--; moved = true; }
-                    break;
-                case 'right':
-                    if (canMove(cur, 1, 0)) { cur.x++; moved = true; }
-                    break;
-                case 'down':
-                    if (canMove(cur, 0, 1)) { cur.y++; moved = true; }
-                    break;
-            }
-        } else {
-            switch(direction) {
-                case 'left':
-                    if (canMove(cur, -1, 0)) { cur.x--; moved = true; }
-                    break;
-                case 'right':
-                    if (canMove(cur, 1, 0)) { cur.x++; moved = true; }
-                    break;
-                case 'down':
-                    if (canMove(cur, 0, 1)) { cur.y++; moved = true; }
-                    break;
-                case 'up':
-                    if (cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
-                    break;
-            }
-        }
-        
-        if (moved&&!gameIsOver&&!isAnimatingClear) {
-            cur.txt.forEach((s_cur, i) => {
-                const r_cur = cur.y + i;
-                if (r_cur >= 0&&r_cur < ROWS) {
-                    const cellElement = $(idx(cur.x, r_cur));
-                    if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) {
-                        currentPieceCells.push(cellElement);
-                    }
-                }
-            });
-            
-            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
-            draw();
-            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
-        }
-    }
-    
-    // Aggiunta gestori eventi per i pulsanti touch
-    document.querySelector('.touch-button.left').addEventListener('click', () => handleTouchMove('left'));
-    document.querySelector('.touch-button.right').addEventListener('click', () => handleTouchMove('right'));
-    document.querySelector('.touch-button.up').addEventListener('click', () => handleTouchMove('up'));
-    document.querySelector('.touch-button.down').addEventListener('click', () => handleTouchMove('down'));
-    
-    // Previeni scrolling della pagina quando si usa un pulsante touch
-    document.querySelectorAll('.touch-button').forEach(button => {
-        button.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-        });
-        
-        // Aggiungi supporto per tocco prolungato (ripetizione)
-        let repeatInterval = null;
-        
-        button.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            
-            // Esegui subito l'azione
-            const direction = this.className.split(' ')[1]; // 'left', 'right', 'up', 'down'
-            handleTouchMove(direction);
-            
-            // Imposta la ripetizione dopo un breve ritardo
-            repeatInterval = setInterval(() => {
-                handleTouchMove(direction);
-            }, 150); // Ripeti ogni 150ms
-        });
-        
-        // Funzione di pulizia
-        const cleanupRepeat = () => {
-            if (repeatInterval) {
-                clearInterval(repeatInterval);
-                repeatInterval = null;
-            }
-        };
-        
-        // Ferma la ripetizione quando il tocco termina
-        button.addEventListener('touchend', cleanupRepeat);
-        button.addEventListener('touchcancel', cleanupRepeat);
-    });
-    // --- Fine AGGIUNTA ---
 
     // MODIFICA: Rimuovi il focus prima di gestire i tasti freccia
     document.addEventListener("keydown", e => {
