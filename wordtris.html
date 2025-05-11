@@ -108,55 +108,109 @@
         }
         #last-word-display .val { color: #fa0; }
         
-        #vowel-selection, #consonant-selection { 
+        /* NUOVO STILE: POPUP MODALE PER SELEZIONE */
+        .modal-overlay {
             display: none;
-            margin-top: 8px; 
-            font-size: 12px;
-            background: rgba(40, 40, 40, 0.5);
-            padding: 8px;
-            border-radius: 6px;
-            width: 90%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+            animation: fadeIn 0.2s ease-out;
         }
         
-        .selection-title {
-            margin-bottom: 8px;
-            color: #ddd;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
-        .vowel, .consonant { 
-            cursor: pointer; 
-            display: inline-block; 
-            padding: 10px; 
-            margin: 5px; 
-            background: #666; 
-            border-radius: 5px; 
-            color: white; 
-            box-shadow: 0 2px 3px rgba(0,0,0,0.3);
-            width: 30px;
-            height: 30px;
-            line-height: 30px;
+        .modal-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 350px;
+            background: #222;
+            border-radius: 15px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translate(-50%, -45%); opacity: 0.5; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+        
+        .modal-header {
             font-size: 18px;
+            margin-bottom: 15px;
+            color: #eee;
+            font-weight: bold;
         }
         
-        .vowel:hover, .consonant:hover { background: #888; transform: translateY(-1px); }
-        .vowel:active, .consonant:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
-        
-        /* Timer per la selezione */
-        #vowel-timer-container, #consonant-timer-container {
-            width: 90%;
-            height: 8px;
+        .modal-timer {
+            height: 5px;
+            width: 100%;
             background: #333;
-            margin: 8px auto 0;
-            border-radius: 5px;
+            border-radius: 3px;
+            margin-bottom: 15px;
             overflow: hidden;
-            display: none;
         }
-        #vowel-timer, #consonant-timer {
+        
+        .timer-bar {
             height: 100%;
             width: 100%;
             background: linear-gradient(90deg, #2a8, #fa0 40%, #f50 70%, #f00);
-            border-radius: 5px;
+            border-radius: 3px;
             transition: width linear;
+        }
+        
+        .selection-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .selection-button {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: rgba(80, 80, 80, 0.8);
+            color: white;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .vowel-button {
+            background: linear-gradient(145deg, #e04040, #b30000);
+        }
+        
+        .consonant-button {
+            background: linear-gradient(145deg, #9040e0, #6000b3);
+        }
+        
+        .selection-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        .selection-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
         
         /* Controllo audio semplificato */
@@ -349,6 +403,12 @@
                 font-size: 14px;
                 min-height: 2em;
             }
+            
+            .selection-button {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -399,13 +459,19 @@
                 padding: 6px 10px;
             }
             
-            .vowel, .consonant {
-                padding: 6px;
-                margin: 3px;
-                width: 25px;
-                height: 25px;
-                line-height: 25px;
+            .selection-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .modal-container {
+                padding: 15px;
+            }
+            
+            .modal-header {
                 font-size: 16px;
+                margin-bottom: 10px;
             }
         }
         
@@ -426,17 +492,14 @@
                 font-size: 16px;
             }
             
-            #last-word-display, #vowel-selection, #consonant-selection {
+            #last-word-display {
                 font-size: 12px;
             }
             
-            .vowel, .consonant {
-                width: 22px;
-                height: 22px;
-                line-height: 22px;
-                font-size: 14px;
-                padding: 5px;
-                margin: 2px;
+            .selection-button {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
             }
         }
 
@@ -484,44 +547,36 @@
         <!-- Colonna principale con il gioco -->
         <div class="main-column">
             <div id="game"></div>
-            
             <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
-            
-            <div id="vowel-timer-container">
-                <div id="vowel-timer"></div>
+        </div>
+    </div>
+    
+    <!-- NUOVO: Modal popup per la selezione di vocali -->
+    <div id="vowel-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">Scegli una vocale (o premi A,E,I,O,U)</div>
+            <div class="modal-timer">
+                <div id="vowel-timer" class="timer-bar"></div>
             </div>
-            
-            <div id="consonant-timer-container">
-                <div id="consonant-timer"></div>
+            <div class="selection-buttons">
+                <button class="selection-button vowel-button" data-vowel="A">A</button>
+                <button class="selection-button vowel-button" data-vowel="E">E</button>
+                <button class="selection-button vowel-button" data-vowel="I">I</button>
+                <button class="selection-button vowel-button" data-vowel="O">O</button>
+                <button class="selection-button vowel-button" data-vowel="U">U</button>
             </div>
-            
-            <div id="vowel-selection">
-                <div class="selection-title">Scegli una vocale (o premi A,E,I,O,U):</div>
-                <div class="vowel" data-vowel="A">A</div>
-                <div class="vowel" data-vowel="E">E</div>
-                <div class="vowel" data-vowel="I">I</div>
-                <div class="vowel" data-vowel="O">O</div>
-                <div class="vowel" data-vowel="U">U</div>
+        </div>
+    </div>
+    
+    <!-- NUOVO: Modal popup per la selezione di consonanti -->
+    <div id="consonant-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">Scegli una consonante</div>
+            <div class="modal-timer">
+                <div id="consonant-timer" class="timer-bar"></div>
             </div>
-            
-            <div id="consonant-selection">
-                <div class="selection-title">Scegli una consonante:</div>
-                <div class="consonant" data-consonant="B">B</div>
-                <div class="consonant" data-consonant="C">C</div>
-                <div class="consonant" data-consonant="D">D</div>
-                <div class="consonant" data-consonant="F">F</div>
-                <div class="consonant" data-consonant="G">G</div>
-                <div class="consonant" data-consonant="H">H</div>
-                <div class="consonant" data-consonant="L">L</div>
-                <div class="consonant" data-consonant="M">M</div>
-                <div class="consonant" data-consonant="N">N</div>
-                <div class="consonant" data-consonant="P">P</div>
-                <div class="consonant" data-consonant="Q">Q</div>
-                <div class="consonant" data-consonant="R">R</div>
-                <div class="consonant" data-consonant="S">S</div>
-                <div class="consonant" data-consonant="T">T</div>
-                <div class="consonant" data-consonant="V">V</div>
-                <div class="consonant" data-consonant="Z">Z</div>
+            <div class="selection-buttons" id="consonant-buttons">
+                <!-- I pulsanti delle consonanti verranno generati dinamicamente qui -->
             </div>
         </div>
     </div>
@@ -930,17 +985,19 @@
     // Le consonanti attualmente disponibili per la scelta
     let availableConsonants = [];
 
+    // Riferimenti UI - AGGIORNATI per i nuovi modal
     const ui = { 
         s: document.getElementById("score"), 
         w: document.getElementById("words"), 
         p: document.getElementById("pieces"), 
-        vowelSelection: document.getElementById("vowel-selection"),
-        consonantSelection: document.getElementById("consonant-selection"),
         lastWordVal: document.getElementById("last-word-val"),
-        vowelTimerContainer: document.getElementById("vowel-timer-container"),
+        
+        // Modali
+        vowelModal: document.getElementById("vowel-modal"),
+        consonantModal: document.getElementById("consonant-modal"),
         vowelTimer: document.getElementById("vowel-timer"),
-        consonantTimerContainer: document.getElementById("consonant-timer-container"),
-        consonantTimer: document.getElementById("consonant-timer")
+        consonantTimer: document.getElementById("consonant-timer"),
+        consonantButtons: document.getElementById("consonant-buttons")
     };
 
     function randSyl() {
@@ -987,17 +1044,18 @@
         // Seleziona le consonanti casuali
         availableConsonants = selectRandomConsonants();
         
-        // Ottieni il container di selezione delle consonanti
-        const consonantSelection = document.getElementById("consonant-selection");
+        // Ottieni il container per i pulsanti delle consonanti
+        const buttonsContainer = ui.consonantButtons;
         
-        // Rimuovi tutti i bottoni delle consonanti esistenti
-        const buttons = consonantSelection.querySelectorAll('.consonant');
-        buttons.forEach(button => button.remove());
+        // Rimuovi tutti i pulsanti esistenti
+        while (buttonsContainer.firstChild) {
+            buttonsContainer.removeChild(buttonsContainer.firstChild);
+        }
         
-        // Crea i nuovi bottoni con le consonanti selezionate
+        // Crea i nuovi pulsanti con le consonanti selezionate
         availableConsonants.forEach(consonant => {
-            const button = document.createElement('div');
-            button.className = 'consonant';
+            const button = document.createElement('button');
+            button.className = 'selection-button consonant-button';
             button.setAttribute('data-consonant', consonant);
             button.textContent = consonant;
             button.addEventListener('click', e => {
@@ -1005,9 +1063,18 @@
                     resolveChoice(e.target.getAttribute('data-consonant'));
                 }
             });
-            consonantSelection.appendChild(button);
+            buttonsContainer.appendChild(button);
         });
     }
+
+    // Aggiungi event listener ai pulsanti delle vocali
+    document.querySelectorAll('.vowel-button').forEach(button => {
+        button.addEventListener('click', e => {
+            if (isChoiceActive&&isVowelChoice) {
+                resolveChoice(e.target.getAttribute('data-vowel'));
+            }
+        });
+    });
 
     function newPiece() {
         if (isNextPieceBomb) {
@@ -1113,11 +1180,13 @@
             isChoiceActive = true;
             
             if (needsVowelChoice) {
-                ui.vowelSelection.style.display = "block";
+                // Mostra il modal delle vocali
+                ui.vowelModal.style.display = "block";
                 startTimer(true);
                 document.addEventListener('keydown', handleVowelKeyboardChoice);
             } else {
-                ui.consonantSelection.style.display = "block";
+                // Mostra il modal delle consonanti
+                ui.consonantModal.style.display = "block";
                 startTimer(false);
                 document.addEventListener('keydown', handleConsonantKeyboardChoice);
             }
@@ -1130,24 +1199,25 @@
     }
     
     function startTimer(isVowel) {
-        const container = isVowel ? ui.vowelTimerContainer : ui.consonantTimerContainer;
         const timer = isVowel ? ui.vowelTimer : ui.consonantTimer;
         
-        container.style.display = "block";
         timer.style.width = "100%";
         timer.style.transition = `width ${VOWEL_TIMEOUT/1000}s linear`;
         
-        void timer.offsetWidth;
+        void timer.offsetWidth; // Forza reflow
         
         timer.style.width = "0%";
     }
     
     function stopTimers() {
-        ui.vowelTimerContainer.style.display = "none";
+        // Nascondi entrambi i modali
+        ui.vowelModal.style.display = "none";
+        ui.consonantModal.style.display = "none";
+        
+        // Resetta i timer
         ui.vowelTimer.style.transition = "none";
         ui.vowelTimer.style.width = "100%";
         
-        ui.consonantTimerContainer.style.display = "none";
         ui.consonantTimer.style.transition = "none";
         ui.consonantTimer.style.width = "100%";
     }
@@ -1182,24 +1252,14 @@
         }
     }
 
-    document.querySelectorAll('.vowel').forEach(el => {
-        el.addEventListener('click', e => {
-            if (isChoiceActive&&isVowelChoice) {
-                resolveChoice(e.target.getAttribute('data-vowel'));
-            }
-        });
-    });
-
     function resolveChoice(chosenLetter) {
         if (!isChoiceActive) return;
         clearTimeout(choiceTimerId);
         
         if (isVowelChoice) {
             document.removeEventListener('keydown', handleVowelKeyboardChoice);
-            ui.vowelSelection.style.display = "none";
         } else {
             document.removeEventListener('keydown', handleConsonantKeyboardChoice);
-            ui.consonantSelection.style.display = "none";
         }
         
         isChoiceActive = false;
@@ -1580,8 +1640,6 @@
         if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
         document.removeEventListener('keydown', handleVowelKeyboardChoice);
         document.removeEventListener('keydown', handleConsonantKeyboardChoice);
-        ui.vowelSelection.style.display = "none";
-        ui.consonantSelection.style.display = "none";
         
         board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
         score = 0; words = 0; pieces = 0; ui.s.textContent = 0; ui.w.textContent = 0; ui.p.textContent = 0; ui.lastWordVal.textContent = "---";
@@ -1615,8 +1673,6 @@
         if (isChoiceActive) { 
             document.removeEventListener('keydown', handleVowelKeyboardChoice);
             document.removeEventListener('keydown', handleConsonantKeyboardChoice);
-            ui.vowelSelection.style.display = "none";
-            ui.consonantSelection.style.display = "none";
             isChoiceActive = false;
         }
         draw(); 
