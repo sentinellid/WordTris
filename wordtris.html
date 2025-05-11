@@ -513,6 +513,108 @@
                 padding-bottom: 20px;
             }
         }
+
+        /* Ottimizzazioni specifiche per dispositivi con schermi molto piccoli */
+        @media screen and (max-width: 360px) and (max-height: 640px) {
+            #game {
+                grid-template-columns: repeat(10, 24px);
+                grid-auto-rows: 24px;
+                gap: 1px;
+            }
+            
+            .stats-column {
+                padding: 3px;
+                gap: 3px;
+            }
+            
+            .stat-item {
+                padding: 2px;
+                max-width: 60px;
+            }
+
+            .stat-item .label {
+                font-size: 10px;
+                margin-bottom: 2px;
+            }
+            
+            .stat-item .val {
+                font-size: 14px;
+            }
+        }
+        
+        /* Media query ultra-specifica per iPhone 8 e dispositivi simili */
+        @media screen and (max-width: 375px) and (max-height: 667px) and (-webkit-device-pixel-ratio: 2) {
+            .stats-column {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 3px;
+                padding: 4px;
+            }
+            
+            .stat-item {
+                font-size: 90%;
+            }
+        }
+        
+        /* Stili per dispositivi molto piccoli (sotto i 320px) */
+        @media (max-width: 320px) {
+            #game {
+                grid-template-columns: repeat(10, 22px);
+                grid-auto-rows: 22px;
+            }
+            
+            .stats-column {
+                flex-wrap: wrap;
+            }
+            
+            .stat-item {
+                flex-basis: 45%;
+                max-width: none;
+                margin-bottom: 3px;
+            }
+
+            #touch-controls {
+                padding: 2px 0;
+                gap: 8px;
+            }
+            
+            .touch-button {
+                width: 36px;
+                height: 36px;
+                font-size: 13px;
+                border-radius: 8px;
+            }
+        }
+
+        /* Stili che si attivano SOLO quando JS ha rilevato un dispositivo problematico */
+        .small-device-optimized .stat-item {
+            padding: 2px;
+            font-size: 90%;
+        }
+
+        .small-device-optimized .stat-item .label {
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .small-device-optimized .stat-item .val {
+            font-size: 14px;
+        }
+        
+        /* Stili specifici per Galaxy Watch e dispositivi molto piccoli simili */
+        .galaxy-watch-optimized .stats-column {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .galaxy-watch-optimized .stat-item {
+            flex: 0 0 auto;
+            font-size: 80%;
+            padding: 1px;
+        }
     </style>
 </head>
 <body>
@@ -1627,6 +1729,54 @@
         else if (e.code === "ArrowUp") handleMove('rotate');
     });
 
+    function applyDeviceSpecificOptimizations() {
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const pixelRatio = window.devicePixelRatio || 1;
+        
+        // Rileva dispositivi specifici problematici
+        const isSmallOlderDevice = 
+            (screenWidth <= 375&&screenHeight <= 667) || // iPhone 8/7/6
+            (screenWidth <= 360&&screenHeight <= 640) || // Samsung vecchi modelli
+            (screenWidth <= 320);                          // Dispositivi molto piccoli
+        
+        // Rileva specificamente Galaxy Watch Active 3 e simili
+        const isGalaxyWatchActive = 
+            (screenWidth <= 360&&screenHeight <= 360)&&(navigator.userAgent.includes('SM-R') || // Identificatore tipico dei Galaxy Watch
+            (screenWidth === screenHeight));        // Schermo quadrato/rotondo
+        
+        if (isGalaxyWatchActive) {
+            document.body.classList.add('galaxy-watch-optimized');
+            
+            // Ottimizzazioni estreme per smartwatch
+            const gameElement = document.getElementById("game");
+            if (gameElement) {
+                gameElement.style.gridTemplateColumns = "repeat(10, 20px)";
+                gameElement.style.gridAutoRows = "20px";
+            }
+        }
+        else if (isSmallOlderDevice) {
+            // Applica class speciale al body per CSS mirato
+            document.body.classList.add('small-device-optimized');
+            
+            // Regolazioni dinamiche minime solo per i dispositivi problematici
+            const gameElement = document.getElementById("game");
+            if (gameElement) {
+                // Riduci leggermente la dimensione della griglia solo su questi dispositivi
+                const cellSize = screenWidth <= 320 ? 22 : 24;
+                gameElement.style.gridTemplateColumns = `repeat(10, ${cellSize}px)`;
+                gameElement.style.gridAutoRows = `${cellSize}px`;
+            }
+            
+            // Compatta lo spazio delle statistiche solo se necessario
+            const statsColumn = document.querySelector(".stats-column");
+            if (statsColumn) {
+                statsColumn.style.padding = "3px";
+                statsColumn.style.gap = "3px";
+            }
+        }
+    }
+
     function initializeActualGame() {
         if (!dizionarioPronto) { console.error("InitializeActualGame: Dizionario non pronto."); return; }
         gameIsOver = false; isChoiceActive = false; isVowelChoice = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
@@ -1700,7 +1850,23 @@
         AudioSystem.backgroundMusicActive = true;
         AudioSystem.initialize();
         
+        // Applica ottimizzazioni specifiche per il dispositivo
+        applyDeviceSpecificOptimizations();
+        
         loadDictionaryAndInitGame();
+    });
+
+    // Applica ottimizzazioni quando la pagina viene caricata
+    document.addEventListener('DOMContentLoaded', function() {
+        // Le ottimizzazioni verranno applicate più tardi quando il gioco viene avviato
+    });
+
+    // Gestisci gli adattamenti anche durante il ridimensionamento
+    window.addEventListener('resize', function() {
+        // Riapplica le ottimizzazioni in caso di cambio orientamento
+        if (!document.getElementById('audio-start-overlay').style.display === 'none') {
+            applyDeviceSpecificOptimizations();
+        }
     });
 </script>
 </body>
