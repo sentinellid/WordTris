@@ -682,6 +682,56 @@
                 border-radius: 8px;
             }
         }
+        
+        /* Ottimizzazione specifica per iPhone 12 e modelli simili */
+        @media only screen 
+        and (device-width: 390px) 
+        and (device-height: 844px) 
+        and (-webkit-device-pixel-ratio: 3),
+        /* iPhone 12 Pro */
+        only screen 
+        and (device-width: 428px) 
+        and (device-height: 926px) 
+        and (-webkit-device-pixel-ratio: 3),
+        /* iPhone 12 Pro Max */
+        only screen 
+        and (device-width: 375px) 
+        and (device-height: 812px) 
+        and (-webkit-device-pixel-ratio: 3),
+        /* iPhone X/XS */
+        only screen 
+        and (device-width: 414px) 
+        and (device-height: 896px) 
+        and (-webkit-device-pixel-ratio: 2) {
+            
+            #game {
+                grid-template-columns: repeat(10, 32px);
+                grid-auto-rows: 32px;
+                gap: 1px;
+            }
+            
+            body {
+                padding-bottom: 80px;
+            }
+            
+            .stats-column {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 5px;
+                gap: 5px;
+                margin-bottom: 5px;
+            }
+            
+            #touch-controls {
+                padding: 3px 0;
+            }
+            
+            .touch-button {
+                width: 55px;
+                height: 55px;
+            }
+        }
 
         /* Stili che si attivano SOLO quando JS ha rilevato un dispositivo problematico */
         .small-device-optimized .stat-item {
@@ -711,6 +761,21 @@
             flex: 0 0 auto;
             font-size: 80%;
             padding: 1px;
+        }
+        
+        /* Stili per iPhone recenti */
+        .iphone-optimized #game {
+            margin-bottom: 10px;
+        }
+        
+        .iphone-optimized .touch-button {
+            width: 55px;
+            height: 55px;
+            font-size: 22px;
+        }
+        
+        .iphone-optimized #touch-controls {
+            padding: 5px 0;
         }
     </style>
 </head>
@@ -817,8 +882,8 @@
     </audio>
     
 <script>
-    // Riduzione di una riga: ROWS passa da 20 a 19
-    const COLS = 10, ROWS = 19, START_DROP = 900, VOWEL_TIMEOUT = 3000, CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    // Riduzione di due righe: ROWS passa da 19 a 17
+    const COLS = 10, ROWS = 17, START_DROP = 900, VOWEL_TIMEOUT = 3000, CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
     
     // --- Sistema audio semplificato ---
     const AudioSystem = {
@@ -1891,6 +1956,30 @@
         const screenHeight = window.innerHeight;
         const pixelRatio = window.devicePixelRatio || 1;
         
+        // Rileva iPhone di nuova generazione
+        const isNewIPhone = 
+            (window.screen.height === 844&&window.screen.width === 390) || // iPhone 12, 13
+            (window.screen.height === 926&&window.screen.width === 428) || // iPhone 12 Pro Max, 13 Pro Max
+            (window.screen.height === 812&&window.screen.width === 375) || // iPhone X, XS, 11 Pro
+            (window.screen.height === 896&&window.screen.width === 414);   // iPhone XR, XS Max, 11
+        
+        if (isNewIPhone) {
+            document.body.classList.add('iphone-optimized');
+            
+            // Regola i margini e spaziature per iPhone recenti
+            const statsCol = document.querySelector('.stats-column');
+            if (statsCol) {
+                statsCol.style.marginBottom = '8px';
+            }
+            
+            // Aumenta un po' i pulsanti touch per adattarli meglio all'iPhone
+            const touchButtons = document.querySelectorAll('.touch-button');
+            touchButtons.forEach(button => {
+                button.style.width = '55px';
+                button.style.height = '55px';
+            });
+        }
+        
         // Rileva dispositivi specifici problematici
         const isSmallOlderDevice = 
             (screenWidth <= 375&&screenHeight <= 667) || // iPhone 8/7/6
@@ -2030,9 +2119,36 @@
         
         // Applica ottimizzazioni specifiche per il dispositivo
         applyDeviceSpecificOptimizations();
+        setupGameDimensions();
         
         loadDictionaryAndInitGame();
     });
+
+    function setupGameDimensions() {
+        // Utilizza rilevamento dinamico per determinare se siamo su iPhone di nuova generazione
+        const isNewIPhone = 
+            (window.screen.height === 844&&window.screen.width === 390) || // iPhone 12, 13
+            (window.screen.height === 926&&window.screen.width === 428) || // iPhone 12 Pro Max, 13 Pro Max
+            (window.screen.height === 812&&window.screen.width === 375) || // iPhone X, XS, 11 Pro
+            (window.screen.height === 896&&window.screen.width === 414);   // iPhone XR, XS Max, 11
+        
+        if (isNewIPhone) {
+            document.body.classList.add('iphone-optimized');
+            
+            // Regola i margini e spaziature per iPhone recenti
+            const statsCol = document.querySelector('.stats-column');
+            if (statsCol) {
+                statsCol.style.marginBottom = '8px';
+            }
+            
+            // Aumenta un po' i pulsanti touch per adattarli meglio all'iPhone
+            const touchButtons = document.querySelectorAll('.touch-button');
+            touchButtons.forEach(button => {
+                button.style.width = '55px';
+                button.style.height = '55px';
+            });
+        }
+    }
 
     // Applica ottimizzazioni quando la pagina viene caricata
     document.addEventListener('DOMContentLoaded', function() {
@@ -2044,6 +2160,7 @@
         // Riapplica le ottimizzazioni in caso di cambio orientamento
         if (!document.getElementById('audio-start-overlay').style.display === 'none') {
             applyDeviceSpecificOptimizations();
+            setupGameDimensions();
         }
     });
 </script>
