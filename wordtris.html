@@ -160,71 +160,48 @@
             background: #555;
             color: #eee;
         }
-        
-        /* Controlli touch per mobile */
+
+        /* NUOVI STILI PER CONTROLLI TOUCH */
         #touch-controls {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            background: rgba(20, 20, 20, 0.85);
             padding: 10px 0;
+            background: rgba(20, 20, 20, 0.85);
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 15px;
             z-index: 1000;
-            box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 -3px 10px rgba(0,0,0,0.4);
         }
-        
-        #touch-controls-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(3, 60px);
-            gap: 5px;
-        }
-        
+
         .touch-button {
-            background: rgba(70, 70, 70, 0.8);
-            border: none;
-            border-radius: 8px;
+            width: 60px;
+            height: 60px;
+            background: rgba(60, 60, 60, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
             color: white;
-            font-size: 20px;
+            font-size: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            user-select: none;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
         }
-        
+
         .touch-button:active {
-            background: rgba(100, 100, 100, 0.8);
+            background: rgba(100, 100, 100, 0.9);
             transform: scale(0.95);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
-        
-        .touch-button.left {
-            grid-column: 1;
-            grid-row: 2;
-        }
-        
-        .touch-button.right {
-            grid-column: 3;
-            grid-row: 2;
-        }
-        
-        .touch-button.up {
-            grid-column: 2;
-            grid-row: 1;
-        }
-        
-        .touch-button.down {
-            grid-column: 2;
-            grid-row: 3;
-        }
-        
-        /* Responsive design per mobile */
-        @media (max-width: 600px) {
+
+        /* Media queries per dispositivi mobili */
+        @media (max-width: 768px) {
             #game {
                 grid-template-columns: repeat(10, 28px);
                 grid-auto-rows: 28px;
@@ -235,9 +212,10 @@
                 font-size: 12px;
             }
             
-            #touch-controls-grid {
-                grid-template-columns: repeat(3, 50px);
-                grid-template-rows: repeat(3, 50px);
+            .touch-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
             }
             
             #audio-controls {
@@ -253,7 +231,7 @@
             }
         }
         
-        @media (max-width: 400px) {
+        @media (max-width: 480px) {
             #game {
                 grid-template-columns: repeat(10, 24px);
                 grid-auto-rows: 24px;
@@ -262,9 +240,14 @@
             .cell {
                 font-size: 10px;
             }
+            
+            .touch-button {
+                width: 45px;
+                height: 45px;
+            }
         }
-        
-        /* Nascondere controlli touch su desktop */
+
+        /* Nasconde i controlli touch quando è disponibile un mouse */
         @media (hover: hover) and (pointer: fine) {
             #touch-controls {
                 display: none;
@@ -310,6 +293,14 @@
             <span class="audio-label">Effetti:</span>
             <input type="range" id="sfx-volume" min="0" max="100" value="70">
         </div>
+    </div>
+    
+    <!-- NOVITÀ: Controlli touch per dispositivi mobili -->
+    <div id="touch-controls">
+        <div class="touch-button" id="touch-left">⬅️</div>
+        <div class="touch-button" id="touch-rotate">🔄</div>
+        <div class="touch-button" id="touch-right">➡️</div>
+        <div class="touch-button" id="touch-down">⬇️</div>
     </div>
     
     <!-- Controlli touch per mobile -->
@@ -1186,6 +1177,106 @@
         if (cur&&!gameIsOver&&!isAnimatingClear) draw();
     }
 
+    // Funzione per gestire le mosse (usata sia dai controlli touch che dalla tastiera)
+    function handleMove(direction) {
+        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        
+        let moved = false;
+        const currentPieceCells = [];
+        
+        if (cur.isBomb) { 
+            if (direction === 'left'&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (direction === 'right'&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (direction === 'down'&&canMove(cur, 0, 1)) { cur.y++; moved = true; }
+        } else { 
+            if (direction === 'left'&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (direction === 'right'&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (direction === 'down'&&canMove(cur, 0, 1)) { cur.y++; moved = true; } 
+            else if (direction === 'rotate'&&cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
+        }
+
+        if(moved&&!gameIsOver&&!isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => { 
+                const r_cur = cur.y + i; 
+                if (r_cur >= 0&&r_cur < ROWS) { 
+                    const cellElement = $(idx(cur.x, r_cur)); 
+                    if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) 
+                        currentPieceCells.push(cellElement); 
+                }
+            });
+            
+            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
+            draw();
+            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
+        }
+    }
+
+    // NUOVA SEZIONE: Gestione eventi touch
+    function setupTouchControls() {
+        // Previeni il bounce della pagina su touch devices
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.target.closest('#touch-controls')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Collega i bottoni touch alle azioni
+        document.getElementById('touch-left').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('left');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('left');
+        });
+        
+        document.getElementById('touch-right').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('right');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('right');
+        });
+        
+        document.getElementById('touch-down').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('down');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('down');
+        });
+        
+        document.getElementById('touch-rotate').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('rotate');
+        });
+        
+        // Interrompi la ripetizione quando si rilascia il touch
+        const touchButtons = document.querySelectorAll('.touch-button');
+        touchButtons.forEach(button => {
+            button.addEventListener('touchend', stopRepeatMove);
+            button.addEventListener('touchcancel', stopRepeatMove);
+        });
+    }
+    
+    let repeatMoveTimer = null;
+    
+    function startRepeatMove(direction) {
+        // Prima fermati se è già in esecuzione
+        stopRepeatMove();
+        
+        // Inizia un nuovo timer per ripetere la mossa
+        repeatMoveTimer = setInterval(() => {
+            handleMove(direction);
+        }, 150); // ripeti ogni 150ms
+    }
+    
+    function stopRepeatMove() {
+        if (repeatMoveTimer) {
+            clearInterval(repeatMoveTimer);
+            repeatMoveTimer = null;
+        }
+    }
+
     // --- AGGIUNTA: Funzioni per gestire i pulsanti touch ---
     function handleTouchMove(direction) {
         if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
@@ -1293,25 +1384,11 @@
             }
         }
         
-        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
-        let moved = false; const currentPieceCells = [];
-        if (cur.isBomb) { 
-            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; }
-        } else { 
-            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; } 
-            else if (e.code === "ArrowUp"&&cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
-        }
-
-        if(moved&&!gameIsOver&&!isAnimatingClear) {
-            cur.txt.forEach((s_cur, i) => { const r_cur = cur.y + i; if (r_cur >= 0&&r_cur < ROWS) { const cellElement = $(idx(cur.x, r_cur)); if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) currentPieceCells.push(cellElement); }});
-            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
-            draw();
-            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
-        }
+        // Gestisci le mosse con la tastiera
+        if (e.code === "ArrowLeft") handleMove('left');
+        else if (e.code === "ArrowRight") handleMove('right');
+        else if (e.code === "ArrowDown") handleMove('down');
+        else if (e.code === "ArrowUp") handleMove('rotate');
     });
 
     function initializeActualGame() {
@@ -1342,6 +1419,9 @@
         
         // Assicurati che l'audio sia inizializzato
         AudioSystem.initialize();
+        
+        // Inizializza i controlli touch
+        setupTouchControls();
     }
 
     function handleGameOver() {
