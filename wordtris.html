@@ -135,30 +135,34 @@
             margin-bottom: 30px;
             line-height: 1.4;
         }
-        #audio-start-overlay button {
+        
+        /* NUOVO STILE PER IL LOGO E PULSANTE SINGOLO */
+        #audio-start-overlay .start-logo {
+            max-width: 300px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        #start-game-button {
             padding: 12px 24px;
-            margin: 10px;
-            font-size: 16px;
+            margin: 20px 0;
+            font-size: 18px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.2s;
             font-weight: bold;
-        }
-        #audio-start-overlay button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        #audio-start-overlay button:active {
-            transform: translateY(0);
-        }
-        #start-with-audio {
             background: linear-gradient(145deg, #3ab0c0, #2a8);
             color: white;
         }
-        #start-without-audio {
-            background: #555;
-            color: #eee;
+        
+        #start-game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        #start-game-button:active {
+            transform: translateY(0);
         }
 
         /* NUOVI STILI PER CONTROLLI TOUCH */
@@ -262,11 +266,10 @@
 <body>
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
-        <h2>WordTrais</h2>
+        <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <h2>WordTris</h2>
         <p>Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
-        <p>Per un'esperienza di gioco migliore, è disponibile una musica di sottofondo.</p>
-        <button id="start-with-audio">Inizia con Musica</button>
-        <button id="start-without-audio">Inizia senza Musica</button>
+        <button id="start-game-button">Inizia</button>
     </div>
 
     <h1>WordTris</h1>
@@ -1458,7 +1461,7 @@
     }
     
     // Gestione overlay di avvio audio
-    document.getElementById('start-with-audio').addEventListener('click', function() {
+    document.getElementById('start-game-button').addEventListener('click', function() {
         document.getElementById('audio-start-overlay').style.display = 'none';
         
         // Inizializza sistema audio con musica attiva
@@ -1468,26 +1471,8 @@
         // Avvia il gioco
         loadDictionaryAndInitGame();
     });
-
-    document.getElementById('start-without-audio').addEventListener('click', function() {
-        document.getElementById('audio-start-overlay').style.display = 'none';
-        
-        // Disattiva musica ma mantieni gli effetti sonori
-        AudioSystem.backgroundMusicActive = false;
-        AudioSystem.initialize();
-        
-        // Aggiorna UI
-        const musicToggle = document.getElementById('toggle-music');
-        if (musicToggle) {
-            musicToggle.textContent = 'Musica: OFF';
-            musicToggle.className = '';
-        }
-        
-        // Avvia il gioco
-        loadDictionaryAndInitGame();
-    });
     
-    // Il gioco inizia solo dopo che l'utente ha scelto un'opzione audio
+    // Il gioco inizia solo dopo che l'utente ha cliccato sul pulsante "Inizia"
 </script>
 </body>
 </html>
