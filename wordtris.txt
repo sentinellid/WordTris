@@ -6,25 +6,51 @@
     <title>WordTris</title>
     <style>
         body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 80px; }
-        #game { margin: 10px auto 5px; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
-        .cell { background: #383838; display: flex; align-items: center; justify-content: center; font: 600 15px monospace; overflow: hidden; user-select: none; border-radius: 5px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; }
+        
+        /* GRIGLIA AUMENTATA DEL 20% */
+        #game { 
+            margin: 10px auto 5px; 
+            display: inline-grid; 
+            grid-template-columns: repeat(10, 38px); /* Aumentato da 32px a 38px */
+            grid-auto-rows: 38px; /* Aumentato da 32px a 38px */
+            gap: 2px; 
+            background: #2a2a2a; 
+            padding: 2px; 
+            border: 3px solid #555; 
+            border-radius: 8px; 
+        }
+        
+        .cell { 
+            background: #383838; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font: 600 18px monospace; /* Aumentato da 15px a 18px */
+            overflow: hidden; 
+            user-select: none; 
+            border-radius: 5px; 
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); 
+            transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; 
+        }
+        
         .filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
         .joker-cell { background: linear-gradient(145deg, #e04040, #b30000); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(255, 80, 80, 0.6); }
-        .bomb-cell { background: linear-gradient(145deg, #555, #222); color: #ffcc00; font-size: 20px; border: 2px outset #777; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.6), 0 0 10px rgba(255, 165, 0, 0.7); }
+        .consonant-joker-cell { background: linear-gradient(145deg, #9040e0, #6000b3); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(160, 80, 255, 0.6); }
+        .bomb-cell { background: linear-gradient(145deg, #555, #222); color: #ffcc00; font-size: 24px; border: 2px outset #777; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.6), 0 0 10px rgba(255, 165, 0, 0.7); }
         .cell.clearing { animation: cellClearAnimation 0.5s forwards; position: relative; z-index: 100; }
         @keyframes cellClearAnimation { 0% { transform: scale(1.0); opacity: 1; background-color: #ffdd40; box-shadow: 0 0 15px #ffdd40; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0.3); opacity: 0; background-color: transparent; box-shadow: none; } }
         .piece-moved-feedback { outline: 1px solid rgba(255, 255, 0, 0.7); transition: outline 0.05s linear; }
         #info { margin: 5px; font-size: 15px; line-height: 1.2; }
-        #vowel-selection { display: none; margin-top: 10px; font-size: 13px; }
-        .vowel { cursor: pointer; display: inline-block; padding: 10px; margin: 5px; background: #666; border-radius: 5px; color: white; box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
-        .vowel:hover { background: #888; transform: translateY(-1px); }
-        .vowel:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
+        #vowel-selection, #consonant-selection { display: none; margin-top: 5px; font-size: 11px; }
+        .vowel, .consonant { cursor: pointer; display: inline-block; padding: 10px; margin: 5px; background: #666; border-radius: 5px; color: white; box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+        .vowel:hover, .consonant:hover { background: #888; transform: translateY(-1px); }
+        .vowel:active, .consonant:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
         span.val { font-weight: bold; color: #7f7; }
         #last-word-display { margin-top: 5px; font-size: 15px; color: #ccc; min-height: 2.2em; line-height: 1.2em; }
         #last-word-display .val { color: #fa0; }
         
-        /* Timer per la selezione vocale */
-        #vowel-timer-container {
+        /* Timer per la selezione */
+        #vowel-timer-container, #consonant-timer-container {
             width: 200px;
             height: 10px;
             background: #333;
@@ -33,7 +59,7 @@
             overflow: hidden;
             display: none;
         }
-        #vowel-timer {
+        #vowel-timer, #consonant-timer {
             height: 100%;
             width: 100%;
             background: linear-gradient(90deg, #2a8, #fa0 40%, #f50 70%, #f00);
@@ -190,14 +216,14 @@
         /* Media queries per dispositivi mobili */
         @media (max-width: 768px) {
             #game {
-                grid-template-columns: repeat(10, 28px);
-                grid-auto-rows: 28px;
+                grid-template-columns: repeat(10, 34px); /* Aumentato da 28px a 34px */
+                grid-auto-rows: 34px; /* Aumentato da 28px a 34px */
                 gap: 1px;
                 margin-top: 5px;
             }
             
             .cell {
-                font-size: 12px;
+                font-size: 14px; /* Aumentato da 12px a 14px */
             }
             
             .touch-button {
@@ -223,13 +249,13 @@
             }
             
             #game {
-                grid-template-columns: repeat(10, 24px);
-                grid-auto-rows: 24px;
+                grid-template-columns: repeat(10, 29px); /* Aumentato da 24px a 29px */
+                grid-auto-rows: 29px; /* Aumentato da 24px a 29px */
                 margin-top: 3px;
             }
             
             .cell {
-                font-size: 10px;
+                font-size: 12px; /* Aumentato da 10px a 12px */
             }
             
             .touch-button {
@@ -251,8 +277,12 @@
         /* Ulteriori ottimizzazioni per schermi molto piccoli */
         @media (max-width: 360px) {
             #game {
-                grid-template-columns: repeat(10, 22px);
-                grid-auto-rows: 22px;
+                grid-template-columns: repeat(10, 26px); /* Aumentato da 22px a 26px */
+                grid-auto-rows: 26px; /* Aumentato da 22px a 26px */
+            }
+            
+            .cell {
+                font-size: 11px; /* Aumentato da 10px a 11px */
             }
             
             .touch-button {
@@ -282,6 +312,9 @@
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
         <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <div id="last-word-display">
+            <button id="toggle-music" class="active">Musica: ON</button>
+        </div>
         <h2>WordTris</h2>
         <p>Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
         <button id="start-game-button">Inizia</button>
@@ -290,19 +323,49 @@
     <div id="game"></div>
     <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
     <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
-        <!-- Controlli audio semplificati -->
-        <div id="alast-word-display">
-            <button id="toggle-music" class="active">Music: ON</button>
-        </div>
+    
+    <!-- Controlli audio semplificati -->
+
     
     <div id="vowel-timer-container">
         <div id="vowel-timer"></div>
     </div>
-    <div id="vowel-selection">Scegli una vocale (o premi A,E,I,O,U): <br><div class="vowel" data-vowel="A">A</div><div class="vowel" data-vowel="E">E</div><div class="vowel" data-vowel="I">I</div><div class="vowel" data-vowel="O">O</div><div class="vowel" data-vowel="U">U</div></div>
+    
+    <div id="consonant-timer-container">
+        <div id="consonant-timer"></div>
+    </div>
+    
+    <div id="vowel-selection">
+        Scegli una vocale (o premi A,E,I,O,U): <br>
+        <div class="vowel" data-vowel="A">A</div>
+        <div class="vowel" data-vowel="E">E</div>
+        <div class="vowel" data-vowel="I">I</div>
+        <div class="vowel" data-vowel="O">O</div>
+        <div class="vowel" data-vowel="U">U</div>
+    </div>
+    
+    <div id="consonant-selection">
+        Scegli una consonante: <br>
+        <div class="consonant" data-consonant="B">B</div>
+        <div class="consonant" data-consonant="C">C</div>
+        <div class="consonant" data-consonant="D">D</div>
+        <div class="consonant" data-consonant="F">F</div>
+        <div class="consonant" data-consonant="G">G</div>
+        <div class="consonant" data-consonant="H">H</div>
+        <div class="consonant" data-consonant="L">L</div>
+        <div class="consonant" data-consonant="M">M</div>
+        <div class="consonant" data-consonant="N">N</div>
+        <div class="consonant" data-consonant="P">P</div>
+        <div class="consonant" data-consonant="Q">Q</div>
+        <div class="consonant" data-consonant="R">R</div>
+        <div class="consonant" data-consonant="S">S</div>
+        <div class="consonant" data-consonant="T">T</div>
+        <div class="consonant" data-consonant="V">V</div>
+        <div class="consonant" data-consonant="Z">Z</div>
+    </div>
     
     <div id="sound-indicator">♪</div>
     <div id="audio-loading">Caricamento audio...</div>
-    
     
     <!-- Controlli touch per dispositivi mobili -->
     <div id="touch-controls">
@@ -329,7 +392,7 @@
     
 <script>
     // Riduzione di una riga: ROWS passa da 20 a 19
-    const COLS = 10, ROWS = 19, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    const COLS = 10, ROWS = 19, START_DROP = 900, VOWEL_TIMEOUT = 3000, CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
     
     // --- Sistema audio semplificato ---
     const AudioSystem = {
@@ -345,6 +408,7 @@
         sounds: {
             drop: { freqs: [220, 165], durations: [0.05, 0.1] },
             selectVowel: { freqs: [440, 660], durations: [0.1, 0.1] },
+            selectConsonant: { freqs: [550, 330], durations: [0.1, 0.1] },
             word: { freqs: [440, 493, 523, 587], durations: [0.08, 0.08, 0.08, 0.2] },
             bombExplosion: { 
                 custom: true, 
@@ -659,6 +723,8 @@
     }
     
     // --- Dati di gioco ---
+    const VOWELS = ["A", "E", "I", "O", "U"];
+    const CONSONANTS = ["B", "C", "D", "F", "G", "H", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "Z"];
     const SYLS_1_LETTER = ["A", "E", "I", "O", "U"]; 
     const SYLS_2_LETTERS = [ 
         "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
@@ -673,7 +739,12 @@
         "TER", "MEN", "SEN", "CON", "ENT", "INT", "CIO", "CIA"
     ]; 
     const PROB_ONE_LETTER_SYL = 0.15; 
-    const PROB_THREE_LETTER_SYL = 0.20; 
+    const PROB_THREE_LETTER_SYL = 0.20;
+    // NUOVE COSTANTI:
+    const VOWEL_CHOICE_PROBABILITY = 0.3;
+    const CONSONANT_CHOICE_PROBABILITY = 0.2;
+    // Numero di consonanti da mostrare alla volta per la selezione
+    const NUM_CONSONANT_CHOICES = 5;
 
     const DICT = new Set();
     let dizionarioPronto = false;
@@ -682,7 +753,9 @@
     const $ = q => document.querySelectorAll("#game .cell")[q];
     const idx = (x, y) => (y * COLS + x);
 
-    let board, cur, gameLoopTimer, vowelChoiceTimerId, score = 0, words = 0, pieces = 0, gameIsOver = false, isVowelChoiceActive = false, vowelChoiceCellInfo = null;
+    let board, cur, gameLoopTimer, choiceTimerId, score = 0, words = 0, pieces = 0, gameIsOver = false, isChoiceActive = false;
+    let isVowelChoice = false; // true per vocali, false per consonanti
+    let choiceCellInfo = null;
     let isAnimatingClear = false; 
     let pendingBoardUpdateAfterAnimation = false;
     let isNextPieceBomb = false; 
@@ -691,16 +764,21 @@
     let chainCount = 0;     
     let currentChainMultiplier = 1.0;  
     let isHurryUpPlaying = false;  
-    let timerInterval = null; 
+    let timerInterval = null;
+    // Le consonanti attualmente disponibili per la scelta
+    let availableConsonants = [];
 
     const ui = { 
         s: document.getElementById("score"), 
         w: document.getElementById("words"), 
         p: document.getElementById("pieces"), 
-        vowelSelection: document.getElementById("vowel-selection"), 
+        vowelSelection: document.getElementById("vowel-selection"),
+        consonantSelection: document.getElementById("consonant-selection"),
         lastWordVal: document.getElementById("last-word-val"),
         vowelTimerContainer: document.getElementById("vowel-timer-container"),
-        vowelTimer: document.getElementById("vowel-timer")
+        vowelTimer: document.getElementById("vowel-timer"),
+        consonantTimerContainer: document.getElementById("consonant-timer-container"),
+        consonantTimer: document.getElementById("consonant-timer")
     };
 
     function randSyl() {
@@ -727,6 +805,48 @@
         }
     }
 
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function selectRandomConsonants() {
+        // Crea una copia delle consonanti e mischiala
+        const shuffledConsonants = shuffleArray([...CONSONANTS]);
+        
+        // Scegli le prime NUM_CONSONANT_CHOICES consonanti
+        return shuffledConsonants.slice(0, NUM_CONSONANT_CHOICES);
+    }
+
+    function setupConsonantSelection() {
+        // Seleziona le consonanti casuali
+        availableConsonants = selectRandomConsonants();
+        
+        // Ottieni il container di selezione delle consonanti
+        const consonantSelection = document.getElementById("consonant-selection");
+        
+        // Rimuovi tutti i bottoni delle consonanti esistenti
+        const buttons = consonantSelection.querySelectorAll('.consonant');
+        buttons.forEach(button => button.remove());
+        
+        // Crea i nuovi bottoni con le consonanti selezionate
+        availableConsonants.forEach(consonant => {
+            const button = document.createElement('div');
+            button.className = 'consonant';
+            button.setAttribute('data-consonant', consonant);
+            button.textContent = consonant;
+            button.addEventListener('click', e => {
+                if (isChoiceActive&&!isVowelChoice) {
+                    resolveChoice(e.target.getAttribute('data-consonant'));
+                }
+            });
+            consonantSelection.appendChild(button);
+        });
+    }
+
     function newPiece() {
         if (isNextPieceBomb) {
             isNextPieceBomb = false; 
@@ -736,13 +856,21 @@
         const r = Math.random(), h_normal = r < .3 ? 1 : r < .75 ? 2 : 3; const txt = [];
         while(txt.length < h_normal) { const s = randSyl(); if (!txt.includes(s)) txt.push(s); }
         pieces++; ui.p.textContent = pieces;
+        
         if (txt.length > 0) {
             const sylIndexToMakeJoker = txt.length - 1; 
             const originalSyl = txt[sylIndexToMakeJoker];
+            
+            // Verifica se rendere un jolly di vocale
             if (/[AEIOU]$/.test(originalSyl)&&originalSyl.length > 1&&Math.random() < VOWEL_CHOICE_PROBABILITY) { 
                 txt[sylIndexToMakeJoker] = originalSyl.slice(0, -1) + "*";
             }
+            // Verifica se rendere un jolly di consonante (solo per vocali singole)
+            else if (VOWELS.includes(originalSyl)&&Math.random() < CONSONANT_CHOICE_PROBABILITY) {
+                txt[sylIndexToMakeJoker] = "*" + originalSyl;
+            }
         }
+        
         return { x: COLS >> 1, y: -h_normal, h: txt.length, txt, isBomb: false };
     }
 
@@ -778,53 +906,88 @@
             return; 
         }
 
-        let needsVowelChoice = false; vowelChoiceCellInfo = null;
+        let needsVowelChoice = false;
+        let needsConsonantChoice = false;
+        choiceCellInfo = null;
+        
         for (let i = 0; i < cur.h; i++) {
             const r_lock = cur.y + i, c_lock = cur.x;
             if (r_lock < 0) { draw(); handleGameOver(); return; }
             board[r_lock][c_lock] = cur.txt[i];
         }
+        
         for (let i = 0; i < cur.h; i++) {
             const r_check = cur.y + i, c_check = cur.x;
-            if (r_check >= 0&&cur.txt[i].endsWith("*")) {
-                needsVowelChoice = true;
-                vowelChoiceCellInfo = { r: r_check, c: c_check, prefix: cur.txt[i].slice(0, -1) };
-                break; 
+            if (r_check >= 0) {
+                const cellContent = cur.txt[i];
+                
+                // Controlla i jolly di vocale (con * alla fine, es: "T*")
+                if (cellContent.endsWith("*")) {
+                    needsVowelChoice = true;
+                    isVowelChoice = true;
+                    choiceCellInfo = { r: r_check, c: c_check, prefix: cellContent.slice(0, -1) };
+                    break;
+                }
+                // Controlla i jolly di consonante (con * all'inizio, es: "*A")
+                else if (cellContent.startsWith("*")&&cellContent.length > 1) {
+                    needsConsonantChoice = true;
+                    isVowelChoice = false;
+                    choiceCellInfo = { r: r_check, c: c_check, suffix: cellContent.slice(1) };
+                    
+                    // Prepara le consonanti disponibili per la selezione
+                    setupConsonantSelection();
+                    break;
+                }
             }
         }
+        
         cur = null; 
         draw(); 
-        if (needsVowelChoice) {
+        
+        if (needsVowelChoice || needsConsonantChoice) {
             AudioSystem.playHurryUp();
             isHurryUpPlaying = true;
             
-            isVowelChoiceActive = true; 
-            ui.vowelSelection.style.display = "block"; 
+            isChoiceActive = true;
             
-            startVowelTimer();
+            if (needsVowelChoice) {
+                ui.vowelSelection.style.display = "block";
+                startTimer(true);
+                document.addEventListener('keydown', handleVowelKeyboardChoice);
+            } else {
+                ui.consonantSelection.style.display = "block";
+                startTimer(false);
+                document.addEventListener('keydown', handleConsonantKeyboardChoice);
+            }
             
-            document.addEventListener('keydown', handleVowelKeyboardChoice);
-            clearTimeout(vowelChoiceTimerId); 
-            vowelChoiceTimerId = setTimeout(() => resolveVowelChoice(null), VOWEL_TIMEOUT);
+            clearTimeout(choiceTimerId);
+            choiceTimerId = setTimeout(() => resolveChoice(null), VOWEL_TIMEOUT);
         } else {
-            processBoardAfterLock(); 
+            processBoardAfterLock();
         }
     }
     
-    function startVowelTimer() {
-        ui.vowelTimerContainer.style.display = "block";
-        ui.vowelTimer.style.width = "100%";
-        ui.vowelTimer.style.transition = `width ${VOWEL_TIMEOUT/1000}s linear`;
+    function startTimer(isVowel) {
+        const container = isVowel ? ui.vowelTimerContainer : ui.consonantTimerContainer;
+        const timer = isVowel ? ui.vowelTimer : ui.consonantTimer;
         
-        void ui.vowelTimer.offsetWidth;
+        container.style.display = "block";
+        timer.style.width = "100%";
+        timer.style.transition = `width ${VOWEL_TIMEOUT/1000}s linear`;
         
-        ui.vowelTimer.style.width = "0%";
+        void timer.offsetWidth;
+        
+        timer.style.width = "0%";
     }
     
-    function stopVowelTimer() {
+    function stopTimers() {
         ui.vowelTimerContainer.style.display = "none";
         ui.vowelTimer.style.transition = "none";
         ui.vowelTimer.style.width = "100%";
+        
+        ui.consonantTimerContainer.style.display = "none";
+        ui.consonantTimer.style.transition = "none";
+        ui.consonantTimer.style.width = "100%";
     }
 
     function detonateBomb(bombHitRow, numRowsToClear, bombCol) {
@@ -840,65 +1003,107 @@
     }
 
     function handleVowelKeyboardChoice(e) {
-        if (!isVowelChoiceActive) return; const VOWELS = "AEIOU"; const keyPressed = e.key.toUpperCase();
-        if (VOWELS.includes(keyPressed)) { e.preventDefault(); resolveVowelChoice(keyPressed); }
+        if (!isChoiceActive || !isVowelChoice) return;
+        const keyPressed = e.key.toUpperCase();
+        if (VOWELS.includes(keyPressed)) {
+            e.preventDefault();
+            resolveChoice(keyPressed);
+        }
+    }
+    
+    function handleConsonantKeyboardChoice(e) {
+        if (!isChoiceActive || isVowelChoice) return;
+        const keyPressed = e.key.toUpperCase();
+        if (availableConsonants.includes(keyPressed)) {
+            e.preventDefault();
+            resolveChoice(keyPressed);
+        }
     }
 
-    document.querySelectorAll('.vowel').forEach(el => el.addEventListener('click', e => { if (isVowelChoiceActive) resolveVowelChoice(e.target.getAttribute('data-vowel')); }));
+    document.querySelectorAll('.vowel').forEach(el => {
+        el.addEventListener('click', e => {
+            if (isChoiceActive&&isVowelChoice) {
+                resolveChoice(e.target.getAttribute('data-vowel'));
+            }
+        });
+    });
 
-    function resolveVowelChoice(chosenVowel) {
-        if (!isVowelChoiceActive) return;
-        clearTimeout(vowelChoiceTimerId); 
-        document.removeEventListener('keydown', handleVowelKeyboardChoice);
-        ui.vowelSelection.style.display = "none"; 
-        isVowelChoiceActive = false;
+    function resolveChoice(chosenLetter) {
+        if (!isChoiceActive) return;
+        clearTimeout(choiceTimerId);
         
-        stopVowelTimer();
+        if (isVowelChoice) {
+            document.removeEventListener('keydown', handleVowelKeyboardChoice);
+            ui.vowelSelection.style.display = "none";
+        } else {
+            document.removeEventListener('keydown', handleConsonantKeyboardChoice);
+            ui.consonantSelection.style.display = "none";
+        }
+        
+        isChoiceActive = false;
+        stopTimers();
         
         if (isHurryUpPlaying) {
             AudioSystem.stopHurryUp();
             isHurryUpPlaying = false;
         }
         
-        if (!chosenVowel&&vowelChoiceCellInfo) {
+        if (!chosenLetter&&choiceCellInfo) {
             AudioSystem.playExplode();
             
-            const { r, c } = vowelChoiceCellInfo;
+            const { r, c } = choiceCellInfo;
             
-            if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c]&&board[r][c].endsWith("*")) {
-                isAnimatingClear = true;
+            if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c]) {
+                const cellContent = board[r][c];
+                const isJollyVowel = cellContent.endsWith("*");
+                const isJollyConsonant = cellContent.startsWith("*");
                 
-                const cellElement = $(idx(c, r));
-                if (cellElement) {
-                    cellElement.classList.add('clearing');
-                    board[r][c] = 'CLEARING_PLACEHOLDER';
+                if (isJollyVowel || isJollyConsonant) {
+                    isAnimatingClear = true;
                     
-                    ui.lastWordVal.innerHTML = `<span style="color:#f55">JOLLY DISINTEGRATO!</span>`;
-                    
-                    setTimeout(() => {
-                        if (board[r]&&board[r][c] === 'CLEARING_PLACEHOLDER') board[r][c] = null;
-                        if (cellElement) {
-                            cellElement.classList.remove('clearing');
-                            cellElement.textContent = "";
-                            cellElement.className = "cell";
-                        }
-                        isAnimatingClear = false;
-                        processBoardAfterLock();
-                    }, ANIMATION_CLEAR_DURATION);
+                    const cellElement = $(idx(c, r));
+                    if (cellElement) {
+                        cellElement.classList.add('clearing');
+                        board[r][c] = 'CLEARING_PLACEHOLDER';
+                        
+                        const jollyType = isJollyVowel ? "VOCALE" : "CONSONANTE";
+                        ui.lastWordVal.innerHTML = `<span style="color:#f55">JOLLY ${jollyType} DISINTEGRATO!</span>`;
+                        
+                        setTimeout(() => {
+                            if (board[r]&&board[r][c] === 'CLEARING_PLACEHOLDER') board[r][c] = null;
+                            if (cellElement) {
+                                cellElement.classList.remove('clearing');
+                                cellElement.textContent = "";
+                                cellElement.className = "cell";
+                            }
+                            isAnimatingClear = false;
+                            processBoardAfterLock();
+                        }, ANIMATION_CLEAR_DURATION);
+                    }
+                } else {
+                    processBoardAfterLock();
                 }
             } else {
                 processBoardAfterLock();
             }
-        } else if (chosenVowel&&vowelChoiceCellInfo) {
-            const { r, c, prefix } = vowelChoiceCellInfo;
-            if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c] === prefix + "*") {
-                board[r][c] = prefix + chosenVowel;
+        } else if (chosenLetter&&choiceCellInfo) {
+            if (isVowelChoice) {
+                const { r, c, prefix } = choiceCellInfo;
+                if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c] === prefix + "*") {
+                    board[r][c] = prefix + chosenLetter;
+                }
+            } else { // Consonant choice
+                const { r, c, suffix } = choiceCellInfo;
+                if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c] === "*" + suffix) {
+                    board[r][c] = chosenLetter + suffix;
+                }
             }
-            vowelChoiceCellInfo = null; 
+            
+            choiceCellInfo = null;
             draw();
             processBoardAfterLock();
         } else {
-            vowelChoiceCellInfo = null; 
+            choiceCellInfo = null;
             draw();
             processBoardAfterLock();
         }
@@ -954,8 +1159,13 @@
             let currentRun = [];
             for (let c = 0; c < COLS; c++) {
                 const cellContent = board[r][c];
-                if (cellContent&&!cellContent.endsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, c: c });
-                else { if (currentRun.length >= 2&&processRunForWords(currentRun, r, true)) clearedAny = true; currentRun = []; }
+                // Modifica per escludere sia i jolly di vocale che quelli di consonante
+                if (cellContent&&!cellContent.endsWith("*")&&!cellContent.startsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') {
+                    currentRun.push({syl: cellContent, c: c });
+                } else { 
+                    if (currentRun.length >= 2&&processRunForWords(currentRun, r, true)) clearedAny = true;
+                    currentRun = []; 
+                }
                 if (isAnimatingClear) break; 
             }
             if (isAnimatingClear) break;
@@ -970,8 +1180,13 @@
             let currentRun = [];
             for (let r = 0; r < ROWS; r++) {
                 const cellContent = board[r][c];
-                if (cellContent&&!cellContent.endsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, r: r });
-                else { if (currentRun.length >= 2&&processRunForWords(currentRun, c, false)) clearedAny = true; currentRun = []; }
+                // Modifica per escludere sia i jolly di vocale che quelli di consonante
+                if (cellContent&&!cellContent.endsWith("*")&&!cellContent.startsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') {
+                    currentRun.push({syl: cellContent, r: r });
+                } else { 
+                    if (currentRun.length >= 2&&processRunForWords(currentRun, c, false)) clearedAny = true; 
+                    currentRun = []; 
+                }
                 if (isAnimatingClear) break;
             }
             if (isAnimatingClear) break;
@@ -1047,8 +1262,12 @@
                     if (s_board) {
                         if (s_board === "💣") { 
                             cellElement.className = "cell bomb-cell";
+                        } else if (s_board.endsWith("*")) {
+                            cellElement.className = "cell joker-cell";
+                        } else if (s_board.startsWith("*")) {
+                            cellElement.className = "cell consonant-joker-cell";
                         } else {
-                            cellElement.className = s_board.endsWith("*") ? "cell joker-cell" : "cell filled";
+                            cellElement.className = "cell filled";
                         }
                     } else {
                         cellElement.className = "cell";
@@ -1066,8 +1285,12 @@
                         cellElement.textContent = s_cur; 
                         if (cur.isBomb) { 
                             cellElement.className = "cell bomb-cell";
+                        } else if (s_cur.endsWith("*")) { 
+                            cellElement.className = "cell joker-cell";
+                        } else if (s_cur.startsWith("*")) {
+                            cellElement.className = "cell consonant-joker-cell";
                         } else { 
-                            cellElement.className = s_cur.endsWith("*") ? "cell joker-cell" : "cell filled";
+                            cellElement.className = "cell filled";
                         }
                     }
                 }
@@ -1076,13 +1299,13 @@
     }
 
     function gameStep() {
-        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        if (isChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
         if (canMove(cur, 0, 1)) cur.y++; else lockCurrentPiece(); 
         if (cur&&!gameIsOver&&!isAnimatingClear) draw();
     }
 
     function handleMove(direction) {
-        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        if (isChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
         
         let moved = false;
         const currentPieceCells = [];
@@ -1184,15 +1407,20 @@
 
     function initializeActualGame() {
         if (!dizionarioPronto) { console.error("InitializeActualGame: Dizionario non pronto."); return; }
-        gameIsOver = false; isVowelChoiceActive = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
+        gameIsOver = false; isChoiceActive = false; isVowelChoice = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
         isNextPieceBomb = false; bombPower = 0; 
         chainCount = 0; currentChainMultiplier = 1.0; 
         isHurryUpPlaying = false;
 
-        stopVowelTimer();
+        stopTimers();
 
-        clearTimeout(vowelChoiceTimerId); if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
-        document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none";
+        clearTimeout(choiceTimerId);
+        if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
+        document.removeEventListener('keydown', handleVowelKeyboardChoice);
+        document.removeEventListener('keydown', handleConsonantKeyboardChoice);
+        ui.vowelSelection.style.display = "none";
+        ui.consonantSelection.style.display = "none";
+        
         board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
         score = 0; words = 0; pieces = 0; ui.s.textContent = 0; ui.w.textContent = 0; ui.p.textContent = 0; ui.lastWordVal.textContent = "---";
         
@@ -1213,16 +1441,22 @@
 
     function handleGameOver() {
         if (gameIsOver) return; gameIsOver = true; 
-        clearInterval(gameLoopTimer); clearTimeout(vowelChoiceTimerId);
+        clearInterval(gameLoopTimer); clearTimeout(choiceTimerId);
         
-        stopVowelTimer();
+        stopTimers();
         
         if (isHurryUpPlaying) {
             AudioSystem.stopHurryUp();
             isHurryUpPlaying = false;
         }
         
-        if (isVowelChoiceActive) { document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false; }
+        if (isChoiceActive) { 
+            document.removeEventListener('keydown', handleVowelKeyboardChoice);
+            document.removeEventListener('keydown', handleConsonantKeyboardChoice);
+            ui.vowelSelection.style.display = "none";
+            ui.consonantSelection.style.display = "none";
+            isChoiceActive = false;
+        }
         draw(); 
         setTimeout(() => { alert(`GAME OVER\nPunti ${score}\nParole ${words}\nPezzi ${pieces}`); loadDictionaryAndInitGame(); }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
     }

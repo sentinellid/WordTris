@@ -7,6 +7,60 @@
     <style>
         body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 80px; }
         
+        /* Layout principale a due colonne */
+        .game-container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            margin: 0 auto;
+            max-width: 95%;
+            gap: 15px;
+        }
+        
+        /* Colonna principale con la griglia */
+        .main-column {
+            flex: 1;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Colonna laterale per statistiche */
+        .stats-column {
+            width: 120px;
+            background: rgba(40, 40, 40, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .stat-item {
+            text-align: left;
+            padding: 8px;
+            background: rgba(60, 60, 60, 0.5);
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .stat-item .label {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .stat-item .val {
+            font-weight: bold;
+            color: #7f7;
+            font-size: 18px;
+        }
+        
         /* GRIGLIA AUMENTATA DEL 20% */
         #game { 
             margin: 10px auto 5px; 
@@ -40,21 +94,59 @@
         .cell.clearing { animation: cellClearAnimation 0.5s forwards; position: relative; z-index: 100; }
         @keyframes cellClearAnimation { 0% { transform: scale(1.0); opacity: 1; background-color: #ffdd40; box-shadow: 0 0 15px #ffdd40; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0.3); opacity: 0; background-color: transparent; box-shadow: none; } }
         .piece-moved-feedback { outline: 1px solid rgba(255, 255, 0, 0.7); transition: outline 0.05s linear; }
-        #info { margin: 5px; font-size: 15px; line-height: 1.2; }
-        #vowel-selection, #consonant-selection { display: none; margin-top: 5px; font-size: 11px; }
-        .vowel, .consonant { cursor: pointer; display: inline-block; padding: 10px; margin: 5px; background: #666; border-radius: 5px; color: white; box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+        
+        #last-word-display { 
+            margin-top: 10px; 
+            font-size: 15px; 
+            color: #ccc; 
+            min-height: 2.2em; 
+            line-height: 1.2em; 
+            padding: 5px 10px;
+            background: rgba(40, 40, 40, 0.5);
+            border-radius: 6px;
+            width: 90%;
+        }
+        #last-word-display .val { color: #fa0; }
+        
+        #vowel-selection, #consonant-selection { 
+            display: none;
+            margin-top: 8px; 
+            font-size: 12px;
+            background: rgba(40, 40, 40, 0.5);
+            padding: 8px;
+            border-radius: 6px;
+            width: 90%;
+        }
+        
+        .selection-title {
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        
+        .vowel, .consonant { 
+            cursor: pointer; 
+            display: inline-block; 
+            padding: 10px; 
+            margin: 5px; 
+            background: #666; 
+            border-radius: 5px; 
+            color: white; 
+            box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            font-size: 18px;
+        }
+        
         .vowel:hover, .consonant:hover { background: #888; transform: translateY(-1px); }
         .vowel:active, .consonant:active { transform: translateY(0px); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
-        span.val { font-weight: bold; color: #7f7; }
-        #last-word-display { margin-top: 5px; font-size: 15px; color: #ccc; min-height: 2.2em; line-height: 1.2em; }
-        #last-word-display .val { color: #fa0; }
         
         /* Timer per la selezione */
         #vowel-timer-container, #consonant-timer-container {
-            width: 200px;
-            height: 10px;
+            width: 90%;
+            height: 8px;
             background: #333;
-            margin: 15px auto 5px;
+            margin: 8px auto 0;
             border-radius: 5px;
             overflow: hidden;
             display: none;
@@ -215,6 +307,27 @@
 
         /* Media queries per dispositivi mobili */
         @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column-reverse;
+                align-items: center;
+            }
+            
+            .stats-column {
+                width: 90%;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 8px;
+                margin-top: 0;
+                margin-bottom: 10px;
+            }
+            
+            .stat-item {
+                flex: 1;
+                text-align: center;
+                padding: 5px;
+                max-width: 80px;
+            }
+            
             #game {
                 grid-template-columns: repeat(10, 34px); /* Aumentato da 28px a 34px */
                 grid-auto-rows: 34px; /* Aumentato da 28px a 34px */
@@ -232,11 +345,6 @@
                 font-size: 20px;
             }
             
-            #info {
-                margin: 4px;
-                font-size: 14px;
-            }
-            
             #last-word-display {
                 font-size: 14px;
                 min-height: 2em;
@@ -246,6 +354,24 @@
         @media (max-width: 480px) {
             body {
                 padding-bottom: 70px;
+            }
+            
+            .game-container {
+                gap: 5px;
+            }
+            
+            .stats-column {
+                padding: 5px;
+                gap: 5px;
+            }
+            
+            .stat-item {
+                padding: 3px;
+                max-width: 70px;
+            }
+            
+            .stat-item .val {
+                font-size: 16px;
             }
             
             #game {
@@ -272,6 +398,15 @@
                 font-size: 12px;
                 padding: 6px 10px;
             }
+            
+            .vowel, .consonant {
+                padding: 6px;
+                margin: 3px;
+                width: 25px;
+                height: 25px;
+                line-height: 25px;
+                font-size: 16px;
+            }
         }
         
         /* Ulteriori ottimizzazioni per schermi molto piccoli */
@@ -291,8 +426,17 @@
                 font-size: 16px;
             }
             
-            #info, #last-word-display {
+            #last-word-display, #vowel-selection, #consonant-selection {
                 font-size: 12px;
+            }
+            
+            .vowel, .consonant {
+                width: 22px;
+                height: 22px;
+                line-height: 22px;
+                font-size: 14px;
+                padding: 5px;
+                margin: 2px;
             }
         }
 
@@ -312,55 +456,74 @@
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
         <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <div>
+            <button id="toggle-music" class="active">Musica: ON</button>
+        </div>
         <h2>WordTris</h2>
         <p>Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
         <button id="start-game-button">Inizia</button>
     </div>
 
-    <div id="game"></div>
-    <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
-    <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
-    
-    <!-- Controlli audio semplificati -->
-    <div id="last-word-display">
-        <button id="toggle-music" class="active">Musica: ON</button>
-    </div>
-    
-    <div id="vowel-timer-container">
-        <div id="vowel-timer"></div>
-    </div>
-    
-    <div id="consonant-timer-container">
-        <div id="consonant-timer"></div>
-    </div>
-    
-    <div id="vowel-selection">
-        Scegli una vocale (o premi A,E,I,O,U): <br>
-        <div class="vowel" data-vowel="A">A</div>
-        <div class="vowel" data-vowel="E">E</div>
-        <div class="vowel" data-vowel="I">I</div>
-        <div class="vowel" data-vowel="O">O</div>
-        <div class="vowel" data-vowel="U">U</div>
-    </div>
-    
-    <div id="consonant-selection">
-        Scegli una consonante: <br>
-        <div class="consonant" data-consonant="B">B</div>
-        <div class="consonant" data-consonant="C">C</div>
-        <div class="consonant" data-consonant="D">D</div>
-        <div class="consonant" data-consonant="F">F</div>
-        <div class="consonant" data-consonant="G">G</div>
-        <div class="consonant" data-consonant="H">H</div>
-        <div class="consonant" data-consonant="L">L</div>
-        <div class="consonant" data-consonant="M">M</div>
-        <div class="consonant" data-consonant="N">N</div>
-        <div class="consonant" data-consonant="P">P</div>
-        <div class="consonant" data-consonant="Q">Q</div>
-        <div class="consonant" data-consonant="R">R</div>
-        <div class="consonant" data-consonant="S">S</div>
-        <div class="consonant" data-consonant="T">T</div>
-        <div class="consonant" data-consonant="V">V</div>
-        <div class="consonant" data-consonant="Z">Z</div>
+    <div class="game-container">
+        <!-- Colonna delle statistiche -->
+        <div class="stats-column">
+            <div class="stat-item">
+                <span class="label">Punti</span>
+                <span id="score" class="val">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Parole</span>
+                <span id="words" class="val">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Pezzi</span>
+                <span id="pieces" class="val">0</span>
+            </div>
+        </div>
+        
+        <!-- Colonna principale con il gioco -->
+        <div class="main-column">
+            <div id="game"></div>
+            
+            <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
+            
+            <div id="vowel-timer-container">
+                <div id="vowel-timer"></div>
+            </div>
+            
+            <div id="consonant-timer-container">
+                <div id="consonant-timer"></div>
+            </div>
+            
+            <div id="vowel-selection">
+                <div class="selection-title">Scegli una vocale (o premi A,E,I,O,U):</div>
+                <div class="vowel" data-vowel="A">A</div>
+                <div class="vowel" data-vowel="E">E</div>
+                <div class="vowel" data-vowel="I">I</div>
+                <div class="vowel" data-vowel="O">O</div>
+                <div class="vowel" data-vowel="U">U</div>
+            </div>
+            
+            <div id="consonant-selection">
+                <div class="selection-title">Scegli una consonante:</div>
+                <div class="consonant" data-consonant="B">B</div>
+                <div class="consonant" data-consonant="C">C</div>
+                <div class="consonant" data-consonant="D">D</div>
+                <div class="consonant" data-consonant="F">F</div>
+                <div class="consonant" data-consonant="G">G</div>
+                <div class="consonant" data-consonant="H">H</div>
+                <div class="consonant" data-consonant="L">L</div>
+                <div class="consonant" data-consonant="M">M</div>
+                <div class="consonant" data-consonant="N">N</div>
+                <div class="consonant" data-consonant="P">P</div>
+                <div class="consonant" data-consonant="Q">Q</div>
+                <div class="consonant" data-consonant="R">R</div>
+                <div class="consonant" data-consonant="S">S</div>
+                <div class="consonant" data-consonant="T">T</div>
+                <div class="consonant" data-consonant="V">V</div>
+                <div class="consonant" data-consonant="Z">Z</div>
+            </div>
+        </div>
     </div>
     
     <div id="sound-indicator">♪</div>
