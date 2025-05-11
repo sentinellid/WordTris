@@ -2,9 +2,10 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WordTris</title>
     <style>
-        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; }
+        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 100px; }
         #game { margin: 20px auto; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
         .cell { background: #383838; display: flex; align-items: center; justify-content: center; font: 600 15px monospace; overflow: hidden; user-select: none; border-radius: 5px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; }
         .filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
@@ -141,6 +142,103 @@
             background: #555;
             color: #eee;
         }
+
+        /* NUOVI STILI PER CONTROLLI TOUCH */
+        #touch-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 0;
+            background: rgba(20, 20, 20, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+            box-shadow: 0 -3px 10px rgba(0,0,0,0.4);
+        }
+
+        .touch-button {
+            width: 60px;
+            height: 60px;
+            background: rgba(60, 60, 60, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+
+        .touch-button:active {
+            background: rgba(100, 100, 100, 0.9);
+            transform: scale(0.95);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        /* Media queries per dispositivi mobili */
+        @media (max-width: 768px) {
+            #game {
+                grid-template-columns: repeat(10, 28px);
+                grid-auto-rows: 28px;
+                gap: 1px;
+            }
+            
+            .cell {
+                font-size: 12px;
+            }
+            
+            .touch-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            #audio-controls {
+                flex-wrap: wrap;
+                max-width: 200px;
+                justify-content: center;
+            }
+            
+            #audio-controls .volume-control {
+                flex-basis: 100%;
+                justify-content: center;
+                margin-top: 5px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #game {
+                grid-template-columns: repeat(10, 24px);
+                grid-auto-rows: 24px;
+            }
+            
+            .cell {
+                font-size: 10px;
+            }
+            
+            .touch-button {
+                width: 45px;
+                height: 45px;
+            }
+        }
+
+        /* Nasconde i controlli touch quando è disponibile un mouse */
+        @media (hover: hover) and (pointer: fine) {
+            #touch-controls {
+                display: none;
+            }
+            
+            body {
+                padding-bottom: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -172,6 +270,14 @@
             <span class="audio-label">Effetti:</span>
             <input type="range" id="sfx-volume" min="0" max="100" value="70">
         </div>
+    </div>
+    
+    <!-- NOVITÀ: Controlli touch per dispositivi mobili -->
+    <div id="touch-controls">
+        <div class="touch-button" id="touch-left">⬅️</div>
+        <div class="touch-button" id="touch-rotate">🔄</div>
+        <div class="touch-button" id="touch-right">➡️</div>
+        <div class="touch-button" id="touch-down">⬇️</div>
     </div>
     
     <!-- Audio background nascosto -->
@@ -844,6 +950,106 @@
         if (cur&&!gameIsOver&&!isAnimatingClear) draw();
     }
 
+    // Funzione per gestire le mosse (usata sia dai controlli touch che dalla tastiera)
+    function handleMove(direction) {
+        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        
+        let moved = false;
+        const currentPieceCells = [];
+        
+        if (cur.isBomb) { 
+            if (direction === 'left'&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (direction === 'right'&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (direction === 'down'&&canMove(cur, 0, 1)) { cur.y++; moved = true; }
+        } else { 
+            if (direction === 'left'&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (direction === 'right'&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (direction === 'down'&&canMove(cur, 0, 1)) { cur.y++; moved = true; } 
+            else if (direction === 'rotate'&&cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
+        }
+
+        if(moved&&!gameIsOver&&!isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => { 
+                const r_cur = cur.y + i; 
+                if (r_cur >= 0&&r_cur < ROWS) { 
+                    const cellElement = $(idx(cur.x, r_cur)); 
+                    if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) 
+                        currentPieceCells.push(cellElement); 
+                }
+            });
+            
+            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
+            draw();
+            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
+        }
+    }
+
+    // NUOVA SEZIONE: Gestione eventi touch
+    function setupTouchControls() {
+        // Previeni il bounce della pagina su touch devices
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.target.closest('#touch-controls')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Collega i bottoni touch alle azioni
+        document.getElementById('touch-left').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('left');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('left');
+        });
+        
+        document.getElementById('touch-right').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('right');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('right');
+        });
+        
+        document.getElementById('touch-down').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('down');
+            
+            // Per ripetizione rapida (tenere premuto)
+            startRepeatMove('down');
+        });
+        
+        document.getElementById('touch-rotate').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMove('rotate');
+        });
+        
+        // Interrompi la ripetizione quando si rilascia il touch
+        const touchButtons = document.querySelectorAll('.touch-button');
+        touchButtons.forEach(button => {
+            button.addEventListener('touchend', stopRepeatMove);
+            button.addEventListener('touchcancel', stopRepeatMove);
+        });
+    }
+    
+    let repeatMoveTimer = null;
+    
+    function startRepeatMove(direction) {
+        // Prima fermati se è già in esecuzione
+        stopRepeatMove();
+        
+        // Inizia un nuovo timer per ripetere la mossa
+        repeatMoveTimer = setInterval(() => {
+            handleMove(direction);
+        }, 150); // ripeti ogni 150ms
+    }
+    
+    function stopRepeatMove() {
+        if (repeatMoveTimer) {
+            clearInterval(repeatMoveTimer);
+            repeatMoveTimer = null;
+        }
+    }
+
     // MODIFICA: Rimuovi il focus prima di gestire i tasti freccia
     document.addEventListener("keydown", e => {
         // Verifica se è attivo uno degli elementi di controllo volume e rimuovi focus
@@ -856,25 +1062,11 @@
             }
         }
         
-        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
-        let moved = false; const currentPieceCells = [];
-        if (cur.isBomb) { 
-            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; }
-        } else { 
-            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; } 
-            else if (e.code === "ArrowUp"&&cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
-        }
-
-        if(moved&&!gameIsOver&&!isAnimatingClear) {
-            cur.txt.forEach((s_cur, i) => { const r_cur = cur.y + i; if (r_cur >= 0&&r_cur < ROWS) { const cellElement = $(idx(cur.x, r_cur)); if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) currentPieceCells.push(cellElement); }});
-            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
-            draw();
-            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
-        }
+        // Gestisci le mosse con la tastiera
+        if (e.code === "ArrowLeft") handleMove('left');
+        else if (e.code === "ArrowRight") handleMove('right');
+        else if (e.code === "ArrowDown") handleMove('down');
+        else if (e.code === "ArrowUp") handleMove('rotate');
     });
 
     function initializeActualGame() {
@@ -901,6 +1093,9 @@
         
         // Assicurati che l'audio sia inizializzato
         AudioSystem.initialize();
+        
+        // Inizializza i controlli touch
+        setupTouchControls();
     }
 
     function handleGameOver() {
