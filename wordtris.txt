@@ -21,16 +21,479 @@
         span.val { font-weight: bold; color: #7f7; }
         #last-word-display { margin-top: 15px; font-size: 16px; color: #ccc; min-height: 3em; line-height: 1.5em; }
         #last-word-display .val { color: #fa0; }
+        
+        /* Indicatore di feedback audio */
+        #sound-indicator { position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s ease; }
+        #sound-indicator.active { opacity: 1; }
+        
+        /* Controlli audio */
+        #audio-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(30, 30, 30, 0.8);
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        #audio-controls button {
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            min-width: 80px;
+        }
+        #audio-controls button:hover {
+            background: #555;
+        }
+        #audio-controls button.active {
+            background: #2a8;
+        }
+        #audio-controls .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #audio-controls .volume-control input {
+            width: 80px;
+        }
+        .audio-label {
+            color: #aaa;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        /* Stato di caricamento audio */
+        #audio-loading {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #ff6;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        #audio-loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Stile per l'overlay di avvio */
+        #audio-start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        #audio-start-overlay h2 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(255,255,255,0.2);
+        }
+        #audio-start-overlay p {
+            font-size: 18px;
+            max-width: 500px;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+        #audio-start-overlay button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        #audio-start-overlay button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #audio-start-overlay button:active {
+            transform: translateY(0);
+        }
+        #start-with-audio {
+            background: linear-gradient(145deg, #3ab0c0, #2a8);
+            color: white;
+        }
+        #start-without-audio {
+            background: #555;
+            color: #eee;
+        }
     </style>
 </head>
 <body>
+    <!-- Overlay per l'avvio dell'audio -->
+    <div id="audio-start-overlay">
+        <h2>WordTris</h2>
+        <p>Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
+        <p>Per un'esperienza di gioco migliore, è disponibile una musica di sottofondo.</p>
+        <button id="start-with-audio">Inizia con Musica</button>
+        <button id="start-without-audio">Inizia senza Musica</button>
+    </div>
+
     <h1>WordTris</h1>
     <div id="game"></div>
     <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
     <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
     <div id="vowel-selection">Scegli una vocale (o premi A,E,I,O,U): <div class="vowel" data-vowel="A">A</div><div class="vowel" data-vowel="E">E</div><div class="vowel" data-vowel="I">I</div><div class="vowel" data-vowel="O">O</div><div class="vowel" data-vowel="U">U</div></div>
+    <div id="sound-indicator">♪</div>
+    <div id="audio-loading">Caricamento audio...</div>
+    
+    <!-- Controlli audio -->
+    <div id="audio-controls">
+        <button id="toggle-music" class="active">Musica: ON</button>
+        <div class="volume-control">
+            <span class="audio-label">Volume:</span>
+            <input type="range" id="music-volume" min="0" max="100" value="30">
+        </div>
+        <div class="volume-control">
+            <span class="audio-label">Effetti:</span>
+            <input type="range" id="sfx-volume" min="0" max="100" value="70">
+        </div>
+    </div>
+    
+    <!-- Audio background nascosto -->
+    <audio id="background-music" loop preload="auto">
+        <source src="audio/background_music.mp3" type="audio/mp3">
+        <!-- Puoi aggiungere formati alternativi come fallback -->
+        <!-- <source src="audio/background_music.ogg" type="audio/ogg"> -->
+    </audio>
+    
 <script>
     const COLS = 10, ROWS = 20, START_DROP = 900, VOWEL_TIMEOUT = 3000, VOWEL_CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    
+    // --- MODIFICA: Sistema audio completo con musica di sottofondo MP3 ---
+    const AudioSystem = {
+        audioContext: null,
+        backgroundMusic: document.getElementById('background-music'),
+        sfxGainNode: null,
+        backgroundMusicActive: true,
+        backgroundMusicLoaded: false,
+        
+        // Impostazioni suoni
+        sounds: {
+            drop: { freqs: [220, 165], durations: [0.05, 0.1] },
+            selectVowel: { freqs: [440, 660], durations: [0.1, 0.1] },
+            word: { freqs: [440, 493, 523, 587], durations: [0.08, 0.08, 0.08, 0.2] },
+            // Nuovo effetto esplosione bomba migliorato
+            bombExplosion: { 
+                custom: true, 
+                generate: function(audioContext, gainNode) {
+                    // Creiamo un effetto più simile a un'esplosione reale
+                    const duration = 1.2;
+                    const now = audioContext.currentTime;
+                    
+                    // Suono 1: Boom basso
+                    const boom = audioContext.createOscillator();
+                    const boomGain = audioContext.createGain();
+                    boom.type = 'sawtooth';
+                    boom.frequency.setValueAtTime(120, now);
+                    boom.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+                    boomGain.gain.setValueAtTime(0.01, now);
+                    boomGain.gain.exponentialRampToValueAtTime(0.7, now + 0.05);
+                    boomGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+                    boom.connect(boomGain);
+                    boomGain.connect(gainNode);
+                    boom.start(now);
+                    boom.stop(now + duration);
+                    
+                    // Suono 2: Rumore esplosione
+                    const bufferSize = audioContext.sampleRate * 1.5;
+                    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    
+                    // Generazione del rumore bianco
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    
+                    // Suono "scoppio"
+                    const noise = audioContext.createBufferSource();
+                    const noiseGain = audioContext.createGain();
+                    const noiseFilter = audioContext.createBiquadFilter();
+                    
+                    noise.buffer = noiseBuffer;
+                    noiseFilter.type = 'lowpass';
+                    noiseFilter.frequency.setValueAtTime(8000, now);
+                    noiseFilter.frequency.exponentialRampToValueAtTime(800, now + 0.6);
+                    noiseGain.gain.setValueAtTime(0.01, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.25, now + 0.05);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+                    
+                    noise.connect(noiseFilter);
+                    noiseFilter.connect(noiseGain);
+                    noiseGain.connect(gainNode);
+                    
+                    noise.start(now);
+                    noise.stop(now + duration);
+                    
+                    // Suono 3: Riverbero post-esplosione
+                    setTimeout(() => {
+                        const reverb = audioContext.createOscillator();
+                        const reverbGain = audioContext.createGain();
+                        const reverbFilter = audioContext.createBiquadFilter();
+                        
+                        reverb.type = 'sine';
+                        reverb.frequency.setValueAtTime(400, now + 0.1);
+                        reverb.frequency.exponentialRampToValueAtTime(100, now + 1.0);
+                        
+                        reverbFilter.type = 'bandpass';
+                        reverbFilter.frequency.value = 200;
+                        reverbFilter.Q.value = 3;
+                        
+                        reverbGain.gain.setValueAtTime(0.05, now + 0.1);
+                        reverbGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+                        
+                        reverb.connect(reverbFilter);
+                        reverbFilter.connect(reverbGain);
+                        reverbGain.connect(gainNode);
+                        
+                        reverb.start(now + 0.1);
+                        reverb.stop(now + duration);
+                    }, 100);
+                }
+            }
+        },
+        
+        initialize() {
+            try {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Crea i nodi di guadagno per effetti sonori
+                    this.sfxGainNode = this.audioContext.createGain();
+                    this.sfxGainNode.gain.value = 0.7; // Volume iniziale SFX (70%)
+                    this.sfxGainNode.connect(this.audioContext.destination);
+                    
+                    // Gestione della musica di sottofondo
+                    this.initBackgroundMusic();
+                    
+                    // Inizializza i controlli dell'interfaccia
+                    this.setupUIControls();
+                }
+                console.log("Sistema audio inizializzato");
+            } catch (e) {
+                console.error("Errore inizializzazione audio:", e);
+            }
+        },
+        
+        setupUIControls() {
+            // Toggle musica
+            const musicToggle = document.getElementById('toggle-music');
+            if (musicToggle) {
+                musicToggle.addEventListener('click', () => {
+                    this.toggleBackgroundMusic();
+                    musicToggle.textContent = this.backgroundMusicActive ? 'Musica: ON' : 'Musica: OFF';
+                    musicToggle.className = this.backgroundMusicActive ? 'active' : '';
+                });
+            }
+            
+            // Controllo volume musica
+            const musicVolumeSlider = document.getElementById('music-volume');
+            if (musicVolumeSlider&&this.backgroundMusic) {
+                // Impedire che le frecce cambino il volume quando il focus è sugli slider
+                musicVolumeSlider.addEventListener('keydown', (e) => {
+                    if (e.code === "ArrowLeft" || e.code === "ArrowRight" || 
+                        e.code === "ArrowUp" || e.code === "ArrowDown") {
+                        e.stopPropagation();
+                    }
+                });
+                
+                musicVolumeSlider.addEventListener('input', (e) => {
+                    this.backgroundMusic.volume = parseInt(e.target.value) / 100;
+                });
+                
+                // Imposta il volume iniziale
+                this.backgroundMusic.volume = parseInt(musicVolumeSlider.value) / 100;
+            }
+            
+            // Controllo volume effetti
+            const sfxVolumeSlider = document.getElementById('sfx-volume');
+            if (sfxVolumeSlider) {
+                // Impedire che le frecce cambino il volume quando il focus è sugli slider
+                sfxVolumeSlider.addEventListener('keydown', (e) => {
+                    if (e.code === "ArrowLeft" || e.code === "ArrowRight" || 
+                        e.code === "ArrowUp" || e.code === "ArrowDown") {
+                        e.stopPropagation();
+                    }
+                });
+                
+                sfxVolumeSlider.addEventListener('input', (e) => {
+                    if (this.sfxGainNode) {
+                        this.sfxGainNode.gain.value = parseInt(e.target.value) / 100;
+                    }
+                });
+            }
+            
+            // AGGIUNTA: Rimuoviamo il focus dagli slider dopo l'interazione
+            const volumeControls = document.querySelectorAll('#audio-controls input[type="range"]');
+            volumeControls.forEach(control => {
+                control.addEventListener('change', () => {
+                    control.blur(); // Rimuovi il focus dopo aver modificato il valore
+                });
+                
+                // Rimuovi il focus anche dopo il click
+                control.addEventListener('click', () => {
+                    setTimeout(() => control.blur(), 150);
+                });
+            });
+        },
+        
+        initBackgroundMusic() {
+            if (!this.backgroundMusic) {
+                console.error("Elemento audio per la musica di sottofondo non trovato");
+                return;
+            }
+            
+            // Mostra indicatore di caricamento
+            const loadingIndicator = document.getElementById('audio-loading');
+            
+            // Gestisci eventi di caricamento audio
+            this.backgroundMusic.addEventListener('canplaythrough', () => {
+                console.log("Musica di sottofondo caricata");
+                this.backgroundMusicLoaded = true;
+                
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                }
+                
+                // Avvia la riproduzione se attivo
+                if (this.backgroundMusicActive) {
+                    this.playBackgroundMusic();
+                }
+            });
+            
+            this.backgroundMusic.addEventListener('error', (e) => {
+                console.error("Errore caricamento musica di sottofondo:", e);
+                if (loadingIndicator) {
+                    loadingIndicator.textContent = "Errore caricamento musica";
+                    setTimeout(() => {
+                        loadingIndicator.classList.add('hidden');
+                    }, 3000);
+                }
+            });
+            
+            // Gestione dell'aggiornamento dell'elemento audio
+            if (this.backgroundMusic.networkState === 1) {
+                // Già caricato
+                this.backgroundMusicLoaded = true;
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                if (this.backgroundMusicActive) this.playBackgroundMusic();
+            }
+        },
+        
+        playBackgroundMusic() {
+            if (!this.backgroundMusic || !this.backgroundMusicLoaded) return;
+            
+            const playPromise = this.backgroundMusic.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Errore riproduzione musica di sottofondo:", error);
+                    // In molti browser è necessaria un'interazione utente prima di riprodurre l'audio
+                });
+            }
+        },
+        
+        stopBackgroundMusic() {
+            if (!this.backgroundMusic) return;
+            this.backgroundMusic.pause();
+        },
+        
+        toggleBackgroundMusic() {
+            this.backgroundMusicActive = !this.backgroundMusicActive;
+            
+            if (this.backgroundMusicActive) {
+                this.playBackgroundMusic();
+            } else {
+                this.stopBackgroundMusic();
+            }
+        },
+        
+        playSynthSound(type) {
+            try {
+                if (!this.audioContext) this.initialize();
+                
+                const soundData = this.sounds[type];
+                if (!soundData) return;
+                
+                // Feedback visivo
+                const indicator = document.getElementById('sound-indicator');
+                if (indicator) {
+                    indicator.textContent = `♪ ${type}`;
+                    indicator.classList.add('active');
+                    setTimeout(() => indicator.classList.remove('active'), 1000);
+                }
+                
+                // Se abbiamo un suono custom, usa il generatore dedicato
+                if (soundData.custom&&typeof soundData.generate === 'function') {
+                    soundData.generate(this.audioContext, this.sfxGainNode);
+                    return;
+                }
+                
+                // Altrimenti usa il generatore standard
+                let startTime = this.audioContext.currentTime;
+                
+                for (let i = 0; i < soundData.freqs.length; i++) {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = type === 'bombExplosion' ? 'sawtooth' : 'sine';
+                    oscillator.frequency.value = soundData.freqs[i];
+                    
+                    gainNode.gain.setValueAtTime(0.001, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.3, startTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + soundData.durations[i]);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGainNode);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + soundData.durations[i]);
+                    
+                    startTime += soundData.durations[i];
+                }
+            } catch (e) {
+                console.error(`Errore riproduzione suono sintetizzato ${type}:`, e);
+            }
+        },
+        
+        playSound(type) {
+            // Assicurati che AudioContext sia pronto
+            if (!this.audioContext) this.initialize();
+            
+            // Riproduci il suono sintetizzato
+            this.playSynthSound(type);
+        }
+    };
+    
+    // Funzione di utilità per riprodurre i suoni
+    function playSound(soundType) {
+        AudioSystem.playSound(soundType);
+    }
+    // --- Fine Modifica ---
     
     // --- MODIFICA: Liste di sillabe e probabilità ---
     const SYLS_2_LETTERS = [ // ESPANDI QUESTA LISTA!
@@ -63,6 +526,8 @@
     let isNextPieceBomb = false; 
     let bombPower = 0;      
     let currentDropInterval = START_DROP; 
+    let chainCount = 0;     // Definizione della variabile chainCount
+    let currentChainMultiplier = 1.0;  // Definizione della variabile currentChainMultiplier
 
     const ui = { s: document.getElementById("score"), w: document.getElementById("words"), p: document.getElementById("pieces"), vowelSelection: document.getElementById("vowel-selection"), lastWordVal: document.getElementById("last-word-val") };
 
@@ -70,7 +535,7 @@
     function randSyl() {
         const useThreeLetter = Math.random() < PROB_THREE_LETTER_SYL;
 
-        if (useThreeLetter && SYLS_3_LETTERS.length > 0) {
+        if (useThreeLetter&&SYLS_3_LETTERS.length > 0) {
             return SYLS_3_LETTERS[Math.floor(Math.random() * SYLS_3_LETTERS.length)];
         } else if (SYLS_2_LETTERS.length > 0) {
             return SYLS_2_LETTERS[Math.floor(Math.random() * SYLS_2_LETTERS.length)];
@@ -97,7 +562,7 @@
             const originalSyl = txt[sylIndexToMakeJoker];
             // La condizione originalSyl.length > 1 è importante se le tue SYLS_2_LETTERS/SYLS_3_LETTERS
             // dovessero contenere sillabe di una sola lettera (cosa che attualmente non fanno)
-            if (/[AEIOU]$/.test(originalSyl) && originalSyl.length > 1 && Math.random() < VOWEL_CHOICE_PROBABILITY) { 
+            if (/[AEIOU]$/.test(originalSyl)&&originalSyl.length > 1&&Math.random() < VOWEL_CHOICE_PROBABILITY) { 
                 txt[sylIndexToMakeJoker] = originalSyl.slice(0, -1) + "*";
             }
         }
@@ -108,7 +573,7 @@
         if (!p || isAnimatingClear) return false;
         for (let i = 0; i < p.h; i++) {
             const nx = p.x + dx, ny = p.y + i + dy;
-            if (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && board[ny][nx] && board[ny][nx] !== 'CLEARING_PLACEHOLDER')) return false;
+            if (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0&&board[ny][nx]&&board[ny][nx] !== 'CLEARING_PLACEHOLDER')) return false;
         }
         return true;
     }
@@ -117,14 +582,21 @@
         if (!dizionarioPronto || isAnimatingClear) return;
         clearInterval(gameLoopTimer); 
 
+        // Riproduci il suono quando un pezzo atterra
+        playSound('drop');
+
         if (cur.isBomb) {
             let landingRow = cur.y + cur.h - 1; 
             for(let i = cur.h -1; i >= 0; i--){ 
-                if(cur.y + i >= ROWS -1 || (cur.y + i + 1 < ROWS && board[cur.y + i + 1] && board[cur.y + i + 1][cur.x])) { // Aggiunto check cur.y + i + 1 < ROWS
+                if(cur.y + i >= ROWS -1 || (cur.y + i + 1 < ROWS&&board[cur.y + i + 1]&&board[cur.y + i + 1][cur.x])) { // Aggiunto check cur.y + i + 1 < ROWS
                     landingRow = cur.y + i; break;
                 }
             }
             if (landingRow >= ROWS) landingRow = ROWS -1; 
+            
+            // Riproduci il suono dell'esplosione della bomba
+            playSound('bombExplosion');
+            
             detonateBomb(landingRow, cur.power, cur.x); 
             cur = null;
             processBoardAfterLock(); 
@@ -139,7 +611,7 @@
         }
         for (let i = 0; i < cur.h; i++) {
             const r_check = cur.y + i, c_check = cur.x;
-            if (r_check >=0 && cur.txt[i].endsWith("*")) {
+            if (r_check >=0&&cur.txt[i].endsWith("*")) {
                 needsVowelChoice = true;
                 vowelChoiceCellInfo = { r: r_check, c: c_check, prefix: cur.txt[i].slice(0, -1) };
                 break; 
@@ -148,8 +620,14 @@
         cur = null; 
         draw(); 
         if (needsVowelChoice) {
-            isVowelChoiceActive = true; ui.vowelSelection.style.display = "block"; document.addEventListener('keydown', handleVowelKeyboardChoice);
-            clearTimeout(vowelChoiceTimerId); vowelChoiceTimerId = setTimeout(() => resolveVowelChoice(null), VOWEL_TIMEOUT);
+            // Riproduci il suono per la selezione della vocale
+            playSound('selectVowel');
+            
+            isVowelChoiceActive = true; 
+            ui.vowelSelection.style.display = "block"; 
+            document.addEventListener('keydown', handleVowelKeyboardChoice);
+            clearTimeout(vowelChoiceTimerId); 
+            vowelChoiceTimerId = setTimeout(() => resolveVowelChoice(null), VOWEL_TIMEOUT);
         } else {
             processBoardAfterLock(); 
         }
@@ -160,7 +638,7 @@
         let actualRowsCleared = 0;
         for (let i = 0; i < numRowsToClear; i++) {
             const rowToClear = bombHitRow - i; 
-            if (rowToClear >= 0 && rowToClear < ROWS) {
+            if (rowToClear >= 0&&rowToClear < ROWS) {
                 for (let c = 0; c < COLS; c++) board[rowToClear][c] = null; 
                 actualRowsCleared++; score += 50 * (i + 1); 
             } else break; 
@@ -178,9 +656,9 @@
         if (!isVowelChoiceActive) return;
         clearTimeout(vowelChoiceTimerId); document.removeEventListener('keydown', handleVowelKeyboardChoice);
         ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false;
-        if (chosenVowel && vowelChoiceCellInfo) {
+        if (chosenVowel&&vowelChoiceCellInfo) {
             const { r, c, prefix } = vowelChoiceCellInfo;
-            if (r>=0 && r<ROWS && c>=0 && c<COLS && board[r] && board[r][c] === prefix + "*") board[r][c] = prefix + chosenVowel;
+            if (r>=0&&r<ROWS&&c>=0&&c<COLS&&board[r]&&board[r][c] === prefix + "*") board[r][c] = prefix + chosenVowel;
         }
         vowelChoiceCellInfo = null; 
         draw();
@@ -196,7 +674,7 @@
         let stabilityReached = false;
         let wordFoundThisOverallPBALCycle = false;
 
-        while (iterations < MAX_ITERATIONS && !stabilityReached && !gameIsOver && !isAnimatingClear) {
+        while (iterations < MAX_ITERATIONS&&!stabilityReached&&!gameIsOver&&!isAnimatingClear) {
             iterations++;
             if (gameIsOver) break;
             collapse(); draw();
@@ -212,7 +690,7 @@
             if (!wordFoundThisScanPass) stabilityReached = true; 
         } 
         
-        if (!isAnimatingClear && !gameIsOver) {
+        if (!isAnimatingClear&&!gameIsOver) {
             ui.s.textContent = score; ui.w.textContent = words;
             cur = newPiece(); 
             
@@ -238,12 +716,12 @@
             let currentRun = [];
             for (let c = 0; c < COLS; c++) {
                 const cellContent = board[r][c];
-                if (cellContent && !cellContent.endsWith("*") && cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, c: c });
-                else { if (currentRun.length >= 2 && processRunForWords(currentRun, r, true)) clearedAny = true; currentRun = []; }
+                if (cellContent&&!cellContent.endsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, c: c });
+                else { if (currentRun.length >= 2&&processRunForWords(currentRun, r, true)) clearedAny = true; currentRun = []; }
                 if (isAnimatingClear) break; 
             }
             if (isAnimatingClear) break;
-            if (currentRun.length >= 2 && processRunForWords(currentRun, r, true)) clearedAny = true;
+            if (currentRun.length >= 2&&processRunForWords(currentRun, r, true)) clearedAny = true;
         }
         return clearedAny;
     }
@@ -254,12 +732,12 @@
             let currentRun = [];
             for (let r = 0; r < ROWS; r++) {
                 const cellContent = board[r][c];
-                if (cellContent && !cellContent.endsWith("*") && cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, r: r });
-                else { if (currentRun.length >= 2 && processRunForWords(currentRun, c, false)) clearedAny = true; currentRun = []; }
+                if (cellContent&&!cellContent.endsWith("*")&&cellContent !== 'CLEARING_PLACEHOLDER') currentRun.push({syl: cellContent, r: r });
+                else { if (currentRun.length >= 2&&processRunForWords(currentRun, c, false)) clearedAny = true; currentRun = []; }
                 if (isAnimatingClear) break;
             }
             if (isAnimatingClear) break;
-            if (currentRun.length >= 2 && processRunForWords(currentRun, c, false)) clearedAny = true;
+            if (currentRun.length >= 2&&processRunForWords(currentRun, c, false)) clearedAny = true;
         }
         return clearedAny;
     }
@@ -273,13 +751,16 @@
                     let cellsAreValid = true;
                     for(const item of subRun) { const r_val = isHorizontal ? fixedCoord : item.r; const c_val = isHorizontal ? item.c : fixedCoord; if(!board[r_val] || board[r_val][c_val] !== item.syl || board[r_val][c_val] === 'CLEARING_PLACEHOLDER') { cellsAreValid = false; break; }}
                     if(cellsAreValid) {
+                        // Riproduci il suono quando viene formata una parola valida
+                        playSound('word');
+                        
                         isAnimatingClear = true; clearInterval(gameLoopTimer);
                         const cellsToAnimate = [];
                         for (const item of subRun) { const r_anim = isHorizontal ? fixedCoord : item.r; const c_anim = isHorizontal ? item.c : fixedCoord; const cellElement = $(idx(c_anim, r_anim)); if (cellElement) { cellElement.classList.add('clearing'); cellsToAnimate.push({ r:r_anim, c:c_anim }); board[r_anim][c_anim] = 'CLEARING_PLACEHOLDER'; }}
                         
                         const numberOfSyllablesInGrid = subRun.length;
                         let bombaAttivataQuestoTurno = false;
-                        if (numberOfSyllablesInGrid >= 3 && !isNextPieceBomb) { 
+                        if (numberOfSyllablesInGrid >= 3&&!isNextPieceBomb) { 
                             isNextPieceBomb = true;
                             bombPower = numberOfSyllablesInGrid - 2;
                             bombaAttivataQuestoTurno = true;
@@ -292,7 +773,7 @@
                         }
                         
                         setTimeout(() => {
-                            cellsToAnimate.forEach(cellCoords => { if (board[cellCoords.r] && board[cellCoords.r][cellCoords.c] === 'CLEARING_PLACEHOLDER') board[cellCoords.r][cellCoords.c] = null; const el = $(idx(cellCoords.c, cellCoords.r)); if (el) { el.classList.remove('clearing'); el.textContent = ""; el.className = "cell"; }});
+                            cellsToAnimate.forEach(cellCoords => { if (board[cellCoords.r]&&board[cellCoords.r][cellCoords.c] === 'CLEARING_PLACEHOLDER') board[cellCoords.r][cellCoords.c] = null; const el = $(idx(cellCoords.c, cellCoords.r)); if (el) { el.classList.remove('clearing'); el.textContent = ""; el.className = "cell"; }});
                             isAnimatingClear = false; pendingBoardUpdateAfterAnimation = true;
                             if (!gameIsOver) processBoardAfterLock(); else draw(); 
                         }, ANIMATION_CLEAR_DURATION);
@@ -310,7 +791,7 @@
             let emptyRow = ROWS - 1;
             for (let r = ROWS - 1; r >= 0; r--) {
                 const cellContent = board[r][c];
-                if (cellContent && cellContent !== 'CLEARING_PLACEHOLDER') {
+                if (cellContent&&cellContent !== 'CLEARING_PLACEHOLDER') {
                     if (r !== emptyRow) { board[emptyRow][c] = board[r][c]; board[r][c] = null; }
                     emptyRow--;
                 }
@@ -338,13 +819,13 @@
                 }
             }
         }
-        if (cur && !gameIsOver && !isAnimatingClear) {
+        if (cur&&!gameIsOver&&!isAnimatingClear) {
             cur.txt.forEach((s_cur, i) => {
                 const r_cur = cur.y + i;
-                if (r_cur >= 0 && r_cur < ROWS) {
+                if (r_cur >= 0&&r_cur < ROWS) {
                     const cellElement = $(idx(cur.x, r_cur));
                     if (cellElement) { 
-                        if (board[r_cur] && board[r_cur][cur.x] === 'CLEARING_PLACEHOLDER') return;
+                        if (board[r_cur]&&board[r_cur][cur.x] === 'CLEARING_PLACEHOLDER') return;
                         cellElement.textContent = s_cur; 
                         if (cur.isBomb) { 
                             cellElement.className = "cell bomb-cell";
@@ -360,25 +841,36 @@
     function gameStep() {
         if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
         if (canMove(cur, 0, 1)) cur.y++; else lockCurrentPiece(); 
-        if (cur && !gameIsOver && !isAnimatingClear) draw();
+        if (cur&&!gameIsOver&&!isAnimatingClear) draw();
     }
 
+    // MODIFICA: Rimuovi il focus prima di gestire i tasti freccia
     document.addEventListener("keydown", e => {
+        // Verifica se è attivo uno degli elementi di controllo volume e rimuovi focus
+        const activeElement = document.activeElement;
+        if (activeElement&&(activeElement.id === 'music-volume' || activeElement.id === 'sfx-volume')) {
+            // Rimuovi il focus solo se è un tasto che usiamo nel gioco
+            if (e.code === "ArrowLeft" || e.code === "ArrowRight" || 
+                e.code === "ArrowUp" || e.code === "ArrowDown") {
+                activeElement.blur();
+            }
+        }
+        
         if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
         let moved = false; const currentPieceCells = [];
         if (cur.isBomb) { 
-            if (e.code === "ArrowLeft" && canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight" && canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown" && canMove(cur, 0, 1)) { cur.y++; moved = true; }
+            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; }
         } else { 
-            if (e.code === "ArrowLeft" && canMove(cur, -1, 0)) { cur.x--; moved = true; }
-            else if (e.code === "ArrowRight" && canMove(cur, 1, 0)) { cur.x++; moved = true; }
-            else if (e.code === "ArrowDown" && canMove(cur, 0, 1)) { cur.y++; moved = true; } 
-            else if (e.code === "ArrowUp" && cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
+            if (e.code === "ArrowLeft"&&canMove(cur, -1, 0)) { cur.x--; moved = true; }
+            else if (e.code === "ArrowRight"&&canMove(cur, 1, 0)) { cur.x++; moved = true; }
+            else if (e.code === "ArrowDown"&&canMove(cur, 0, 1)) { cur.y++; moved = true; } 
+            else if (e.code === "ArrowUp"&&cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
         }
 
-        if(moved && !gameIsOver && !isAnimatingClear) {
-            cur.txt.forEach((s_cur, i) => { const r_cur = cur.y + i; if (r_cur >= 0 && r_cur < ROWS) { const cellElement = $(idx(cur.x, r_cur)); if (cellElement && (!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) currentPieceCells.push(cellElement); }});
+        if(moved&&!gameIsOver&&!isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => { const r_cur = cur.y + i; if (r_cur >= 0&&r_cur < ROWS) { const cellElement = $(idx(cur.x, r_cur)); if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) currentPieceCells.push(cellElement); }});
             currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
             draw();
             setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
@@ -391,7 +883,7 @@
         isNextPieceBomb = false; bombPower = 0; 
         chainCount = 0; currentChainMultiplier = 1.0; 
 
-        clearTimeout(vowelChoiceTimerId); if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+        clearTimeout(vowelChoiceTimerId); if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
         document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none";
         board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
         score = 0; words = 0; pieces = 0; ui.s.textContent = 0; ui.w.textContent = 0; ui.p.textContent = 0; ui.lastWordVal.textContent = "---";
@@ -405,7 +897,10 @@
         
         draw();
         clearInterval(gameLoopTimer);
-        if (!isAnimatingClear && !gameIsOver) { gameLoopTimer = setInterval(gameStep, currentDropInterval); }
+        if (!isAnimatingClear&&!gameIsOver) { gameLoopTimer = setInterval(gameStep, currentDropInterval); }
+        
+        // Assicurati che l'audio sia inizializzato
+        AudioSystem.initialize();
     }
 
     function handleGameOver() {
@@ -425,12 +920,43 @@
             if (!response.ok) throw new Error(`Errore HTTP! Status: ${response.status} (${response.statusText}) per data/dizionario.txt`);
             const text = await response.text(); const paroleCaricate = text.trim().split(/\r?\n/);
             paroleCaricate.forEach(word => { const parolaPulita = word.trim().toUpperCase(); if (parolaPulita.length > 0) DICT.add(parolaPulita); });
-            if (DICT.size === 0 && paroleCaricate.length > 0) console.warn("Dizionario caricato ma DICT è vuoto.");
+            if (DICT.size === 0&&paroleCaricate.length > 0) console.warn("Dizionario caricato ma DICT è vuoto.");
             else if (DICT.size === 0) console.warn("Nessuna parola caricata nel dizionario.");
             dizionarioPronto = true; ui.lastWordVal.textContent = "---"; initializeActualGame();
         } catch (error) { console.error("Impossibile caricare il dizionario:", error); alert("Errore caricamento dizionario: " + error.message + "\nControlla console."); ui.lastWordVal.textContent = "ERRORE DIZIONARIO"; }
     }
-    loadDictionaryAndInitGame();
+    
+    // Gestione overlay di avvio audio
+    document.getElementById('start-with-audio').addEventListener('click', function() {
+        document.getElementById('audio-start-overlay').style.display = 'none';
+        
+        // Inizializza sistema audio con musica attiva
+        AudioSystem.backgroundMusicActive = true;
+        AudioSystem.initialize();
+        
+        // Avvia il gioco
+        loadDictionaryAndInitGame();
+    });
+
+    document.getElementById('start-without-audio').addEventListener('click', function() {
+        document.getElementById('audio-start-overlay').style.display = 'none';
+        
+        // Disattiva musica ma mantieni gli effetti sonori
+        AudioSystem.backgroundMusicActive = false;
+        AudioSystem.initialize();
+        
+        // Aggiorna UI
+        const musicToggle = document.getElementById('toggle-music');
+        if (musicToggle) {
+            musicToggle.textContent = 'Musica: OFF';
+            musicToggle.className = '';
+        }
+        
+        // Avvia il gioco
+        loadDictionaryAndInitGame();
+    });
+    
+    // Il gioco inizia solo dopo che l'utente ha scelto un'opzione audio
 </script>
 </body>
 </html>

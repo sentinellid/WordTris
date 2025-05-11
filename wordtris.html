@@ -2,9 +2,10 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WordTris</title>
     <style>
-        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; }
+        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 100px; }
         #game { margin: 20px auto; display: inline-grid; grid-template-columns: repeat(10, 32px); grid-auto-rows: 32px; gap: 2px; background: #2a2a2a; padding: 2px; border: 3px solid #555; border-radius: 8px; }
         .cell { background: #383838; display: flex; align-items: center; justify-content: center; font: 600 15px monospace; overflow: hidden; user-select: none; border-radius: 5px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; }
         .filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
@@ -21,6 +22,24 @@
         span.val { font-weight: bold; color: #7f7; }
         #last-word-display { margin-top: 15px; font-size: 16px; color: #ccc; min-height: 3em; line-height: 1.5em; }
         #last-word-display .val { color: #fa0; }
+        
+        /* Timer per la selezione vocale */
+        #vowel-timer-container {
+            width: 200px;
+            height: 10px;
+            background: #333;
+            margin: 15px auto 5px;
+            border-radius: 5px;
+            overflow: hidden;
+            display: none;
+        }
+        #vowel-timer {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #2a8, #fa0 40%, #f50 70%, #f00);
+            border-radius: 5px;
+            transition: width linear;
+        }
         
         /* Indicatore di feedback audio */
         #sound-indicator { position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s ease; }
@@ -141,6 +160,120 @@
             background: #555;
             color: #eee;
         }
+        
+        /* Controlli touch per mobile */
+        #touch-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
+        }
+        
+        #touch-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(3, 60px);
+            gap: 5px;
+        }
+        
+        .touch-button {
+            background: rgba(70, 70, 70, 0.8);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .touch-button:active {
+            background: rgba(100, 100, 100, 0.8);
+            transform: scale(0.95);
+        }
+        
+        .touch-button.left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .touch-button.right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .touch-button.up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .touch-button.down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        
+        /* Responsive design per mobile */
+        @media (max-width: 600px) {
+            #game {
+                grid-template-columns: repeat(10, 28px);
+                grid-auto-rows: 28px;
+                gap: 1px;
+            }
+            
+            .cell {
+                font-size: 12px;
+            }
+            
+            #touch-controls-grid {
+                grid-template-columns: repeat(3, 50px);
+                grid-template-rows: repeat(3, 50px);
+            }
+            
+            #audio-controls {
+                flex-wrap: wrap;
+                max-width: 200px;
+                justify-content: center;
+            }
+            
+            #audio-controls .volume-control {
+                flex-basis: 100%;
+                justify-content: center;
+                margin-top: 5px;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            #game {
+                grid-template-columns: repeat(10, 24px);
+                grid-auto-rows: 24px;
+            }
+            
+            .cell {
+                font-size: 10px;
+            }
+        }
+        
+        /* Nascondere controlli touch su desktop */
+        @media (hover: hover) and (pointer: fine) {
+            #touch-controls {
+                display: none;
+            }
+            
+            body {
+                padding-bottom: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -157,7 +290,12 @@
     <div id="game"></div>
     <div id="info">Punti <span id="score" class="val">0</span> · Parole <span id="words" class="val">0</span> · Pezzi <span id="pieces" class="val">0</span></div>
     <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
+    
+    <div id="vowel-timer-container">
+        <div id="vowel-timer"></div>
+    </div>
     <div id="vowel-selection">Scegli una vocale (o premi A,E,I,O,U): <div class="vowel" data-vowel="A">A</div><div class="vowel" data-vowel="E">E</div><div class="vowel" data-vowel="I">I</div><div class="vowel" data-vowel="O">O</div><div class="vowel" data-vowel="U">U</div></div>
+    
     <div id="sound-indicator">♪</div>
     <div id="audio-loading">Caricamento audio...</div>
     
@@ -174,16 +312,29 @@
         </div>
     </div>
     
+    <!-- Controlli touch per mobile -->
+    <div id="touch-controls">
+        <div id="touch-controls-grid">
+            <button class="touch-button up">⬆️</button>
+            <button class="touch-button left">⬅️</button>
+            <button class="touch-button right">➡️</button>
+            <button class="touch-button down">⬇️</button>
+        </div>
+    </div>
+    
     <!-- Audio background nascosto -->
     <audio id="background-music" loop preload="auto">
         <source src="audio/background_music.mp3" type="audio/mp3">
-        <!-- Puoi aggiungere formati alternativi come fallback -->
-        <!-- <source src="audio/background_music.ogg" type="audio/ogg"> -->
     </audio>
     
     <!-- Audio hurry-up per la scelta vocale -->
     <audio id="hurry-up-sound" preload="auto">
         <source src="audio/hurry-up.mp3" type="audio/mp3">
+    </audio>
+    
+    <!-- Audio per l'esplosione del tetramino -->
+    <audio id="explode-sound" preload="auto">
+        <source src="audio/explode.mp3" type="audio/mp3">
     </audio>
     
 <script>
@@ -194,6 +345,7 @@
         audioContext: null,
         backgroundMusic: document.getElementById('background-music'),
         hurryUpSound: document.getElementById('hurry-up-sound'),
+        explodeSound: document.getElementById('explode-sound'),
         sfxGainNode: null,
         backgroundMusicActive: true,
         backgroundMusicLoaded: false,
@@ -355,11 +507,21 @@
                     if (this.hurryUpSound) {
                         this.hurryUpSound.volume = parseInt(e.target.value) / 100;
                     }
+                    
+                    // Aggiorna anche il volume del suono explode
+                    if (this.explodeSound) {
+                        this.explodeSound.volume = parseInt(e.target.value) / 100;
+                    }
                 });
                 
                 // Imposta il volume iniziale per hurry-up
                 if (this.hurryUpSound) {
                     this.hurryUpSound.volume = parseInt(sfxVolumeSlider.value) / 100;
+                }
+                
+                // Imposta il volume iniziale per explode
+                if (this.explodeSound) {
+                    this.explodeSound.volume = parseInt(sfxVolumeSlider.value) / 100;
                 }
             }
             
@@ -483,6 +645,30 @@
             }
         },
         
+        playExplode() {
+            if (!this.explodeSound) {
+                console.error("Elemento audio per il suono explode non trovato");
+                return;
+            }
+            
+            try {
+                // Resetta il suono se stava già suonando
+                this.explodeSound.pause();
+                this.explodeSound.currentTime = 0;
+                
+                // Riproduci il suono
+                const playPromise = this.explodeSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn("Errore riproduzione suono explode:", error);
+                    });
+                }
+            } catch (e) {
+                console.error("Errore riproduzione explode:", e);
+            }
+        },
+        
         playSynthSound(type) {
             try {
                 if (!this.audioContext) this.initialize();
@@ -582,8 +768,17 @@
     let chainCount = 0;     // Definizione della variabile chainCount
     let currentChainMultiplier = 1.0;  // Definizione della variabile currentChainMultiplier
     let isHurryUpPlaying = false;  // Flag per monitorare se hurry-up è in riproduzione
+    let timerInterval = null; // Intervallo per l'aggiornamento del timer visivo
 
-    const ui = { s: document.getElementById("score"), w: document.getElementById("words"), p: document.getElementById("pieces"), vowelSelection: document.getElementById("vowel-selection"), lastWordVal: document.getElementById("last-word-val") };
+    const ui = { 
+        s: document.getElementById("score"), 
+        w: document.getElementById("words"), 
+        p: document.getElementById("pieces"), 
+        vowelSelection: document.getElementById("vowel-selection"), 
+        lastWordVal: document.getElementById("last-word-val"),
+        vowelTimerContainer: document.getElementById("vowel-timer-container"),
+        vowelTimer: document.getElementById("vowel-timer")
+    };
 
     // --- MODIFICA: randSyl aggiornata per includere vocali singole ---
     function randSyl() {
@@ -693,12 +888,39 @@
             
             isVowelChoiceActive = true; 
             ui.vowelSelection.style.display = "block"; 
+            
+            // Mostra e avvia il timer visivo
+            startVowelTimer();
+            
             document.addEventListener('keydown', handleVowelKeyboardChoice);
             clearTimeout(vowelChoiceTimerId); 
             vowelChoiceTimerId = setTimeout(() => resolveVowelChoice(null), VOWEL_TIMEOUT);
         } else {
             processBoardAfterLock(); 
         }
+    }
+    
+    // Funzione per avviare il timer visivo
+    function startVowelTimer() {
+        // Mostra il contenitore del timer
+        ui.vowelTimerContainer.style.display = "block";
+        // Imposta la larghezza del timer al 100%
+        ui.vowelTimer.style.width = "100%";
+        // Imposta la durata della transizione
+        ui.vowelTimer.style.transition = `width ${VOWEL_TIMEOUT/1000}s linear`;
+        
+        // Forza un reflow per assicurarsi che la transizione funzioni
+        void ui.vowelTimer.offsetWidth;
+        
+        // Avvia la transizione
+        ui.vowelTimer.style.width = "0%";
+    }
+    
+    // Funzione per fermare il timer visivo
+    function stopVowelTimer() {
+        ui.vowelTimerContainer.style.display = "none";
+        ui.vowelTimer.style.transition = "none";
+        ui.vowelTimer.style.width = "100%";
     }
 
     function detonateBomb(bombHitRow, numRowsToClear, bombCol) {
@@ -722,8 +944,13 @@
 
     function resolveVowelChoice(chosenVowel) {
         if (!isVowelChoiceActive) return;
-        clearTimeout(vowelChoiceTimerId); document.removeEventListener('keydown', handleVowelKeyboardChoice);
-        ui.vowelSelection.style.display = "none"; isVowelChoiceActive = false;
+        clearTimeout(vowelChoiceTimerId); 
+        document.removeEventListener('keydown', handleVowelKeyboardChoice);
+        ui.vowelSelection.style.display = "none"; 
+        isVowelChoiceActive = false;
+        
+        // Ferma il timer visivo
+        stopVowelTimer();
         
         // Interrompi il suono hurry-up quando viene scelta una vocale o scade il tempo
         if (isHurryUpPlaying) {
@@ -731,13 +958,53 @@
             isHurryUpPlaying = false;
         }
         
-        if (chosenVowel&&vowelChoiceCellInfo) {
+        // Se non è stata scelta una vocale (timeout scaduto), disintegra il tetramino
+        if (!chosenVowel&&vowelChoiceCellInfo) {
+            // Riproduci il suono di esplosione per la disintegrazione
+            AudioSystem.playExplode();
+            
+            const { r, c } = vowelChoiceCellInfo;
+            
+            // Animazione di disintegrazione per la cella con il jolly
+            if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c]&&board[r][c].endsWith("*")) {
+                isAnimatingClear = true;
+                
+                const cellElement = $(idx(c, r));
+                if (cellElement) {
+                    cellElement.classList.add('clearing');
+                    board[r][c] = 'CLEARING_PLACEHOLDER';
+                    
+                    // Mostra un messaggio nel lastWordVal
+                    ui.lastWordVal.innerHTML = `<span style="color:#f55">JOLLY DISINTEGRATO!</span>`;
+                    
+                    setTimeout(() => {
+                        if (board[r]&&board[r][c] === 'CLEARING_PLACEHOLDER') board[r][c] = null;
+                        if (cellElement) {
+                            cellElement.classList.remove('clearing');
+                            cellElement.textContent = "";
+                            cellElement.className = "cell";
+                        }
+                        isAnimatingClear = false;
+                        processBoardAfterLock();
+                    }, ANIMATION_CLEAR_DURATION);
+                }
+            } else {
+                processBoardAfterLock();
+            }
+        } else if (chosenVowel&&vowelChoiceCellInfo) {
+            // Se è stata scelta una vocale, sostituisci il jolly con la vocale
             const { r, c, prefix } = vowelChoiceCellInfo;
-            if (r>=0&&r<ROWS&&c>=0&&c<COLS&&board[r]&&board[r][c] === prefix + "*") board[r][c] = prefix + chosenVowel;
+            if (r >= 0&&r < ROWS&&c >= 0&&c < COLS&&board[r]&&board[r][c] === prefix + "*") {
+                board[r][c] = prefix + chosenVowel;
+            }
+            vowelChoiceCellInfo = null; 
+            draw();
+            processBoardAfterLock();
+        } else {
+            vowelChoiceCellInfo = null; 
+            draw();
+            processBoardAfterLock();
         }
-        vowelChoiceCellInfo = null; 
-        draw();
-        processBoardAfterLock();
     }
 
     function processBoardAfterLock() {
@@ -919,6 +1186,101 @@
         if (cur&&!gameIsOver&&!isAnimatingClear) draw();
     }
 
+    // --- AGGIUNTA: Funzioni per gestire i pulsanti touch ---
+    function handleTouchMove(direction) {
+        if (isVowelChoiceActive || gameIsOver || !cur || !dizionarioPronto || isAnimatingClear) return;
+        
+        let moved = false;
+        const currentPieceCells = [];
+        
+        if (cur.isBomb) {
+            switch(direction) {
+                case 'left':
+                    if (canMove(cur, -1, 0)) { cur.x--; moved = true; }
+                    break;
+                case 'right':
+                    if (canMove(cur, 1, 0)) { cur.x++; moved = true; }
+                    break;
+                case 'down':
+                    if (canMove(cur, 0, 1)) { cur.y++; moved = true; }
+                    break;
+            }
+        } else {
+            switch(direction) {
+                case 'left':
+                    if (canMove(cur, -1, 0)) { cur.x--; moved = true; }
+                    break;
+                case 'right':
+                    if (canMove(cur, 1, 0)) { cur.x++; moved = true; }
+                    break;
+                case 'down':
+                    if (canMove(cur, 0, 1)) { cur.y++; moved = true; }
+                    break;
+                case 'up':
+                    if (cur.txt.length > 1) { cur.txt.unshift(cur.txt.pop()); moved = true; }
+                    break;
+            }
+        }
+        
+        if (moved&&!gameIsOver&&!isAnimatingClear) {
+            cur.txt.forEach((s_cur, i) => {
+                const r_cur = cur.y + i;
+                if (r_cur >= 0&&r_cur < ROWS) {
+                    const cellElement = $(idx(cur.x, r_cur));
+                    if (cellElement&&(!board[r_cur] || board[r_cur][cur.x] !== 'CLEARING_PLACEHOLDER')) {
+                        currentPieceCells.push(cellElement);
+                    }
+                }
+            });
+            
+            currentPieceCells.forEach(el => el.classList.add('piece-moved-feedback'));
+            draw();
+            setTimeout(() => currentPieceCells.forEach(el => el.classList.remove('piece-moved-feedback')), 100);
+        }
+    }
+    
+    // Aggiunta gestori eventi per i pulsanti touch
+    document.querySelector('.touch-button.left').addEventListener('click', () => handleTouchMove('left'));
+    document.querySelector('.touch-button.right').addEventListener('click', () => handleTouchMove('right'));
+    document.querySelector('.touch-button.up').addEventListener('click', () => handleTouchMove('up'));
+    document.querySelector('.touch-button.down').addEventListener('click', () => handleTouchMove('down'));
+    
+    // Previeni scrolling della pagina quando si usa un pulsante touch
+    document.querySelectorAll('.touch-button').forEach(button => {
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        });
+        
+        // Aggiungi supporto per tocco prolungato (ripetizione)
+        let repeatInterval = null;
+        
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            
+            // Esegui subito l'azione
+            const direction = this.className.split(' ')[1]; // 'left', 'right', 'up', 'down'
+            handleTouchMove(direction);
+            
+            // Imposta la ripetizione dopo un breve ritardo
+            repeatInterval = setInterval(() => {
+                handleTouchMove(direction);
+            }, 150); // Ripeti ogni 150ms
+        });
+        
+        // Funzione di pulizia
+        const cleanupRepeat = () => {
+            if (repeatInterval) {
+                clearInterval(repeatInterval);
+                repeatInterval = null;
+            }
+        };
+        
+        // Ferma la ripetizione quando il tocco termina
+        button.addEventListener('touchend', cleanupRepeat);
+        button.addEventListener('touchcancel', cleanupRepeat);
+    });
+    // --- Fine AGGIUNTA ---
+
     // MODIFICA: Rimuovi il focus prima di gestire i tasti freccia
     document.addEventListener("keydown", e => {
         // Verifica se è attivo uno degli elementi di controllo volume e rimuovi focus
@@ -959,6 +1321,9 @@
         chainCount = 0; currentChainMultiplier = 1.0; 
         isHurryUpPlaying = false;
 
+        // Nascondi e resetta il timer
+        stopVowelTimer();
+
         clearTimeout(vowelChoiceTimerId); if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
         document.removeEventListener('keydown', handleVowelKeyboardChoice); ui.vowelSelection.style.display = "none";
         board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -982,6 +1347,9 @@
     function handleGameOver() {
         if (gameIsOver) return; gameIsOver = true; 
         clearInterval(gameLoopTimer); clearTimeout(vowelChoiceTimerId);
+        
+        // Nascondi e resetta il timer
+        stopVowelTimer();
         
         // Interrompi il suono hurry-up se è in riproduzione
         if (isHurryUpPlaying) {
