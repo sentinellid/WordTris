@@ -438,6 +438,94 @@
             background: rgba(100, 100, 100, 0.8);
         }
 
+        /* NUOVO: Overlay di livello completato */
+        #level-complete-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1600;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(3px);
+            text-align: center;
+        }
+
+        #level-complete-overlay h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: white;
+            text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+        }
+
+        #level-complete-overlay .level-stats {
+            color: #ddd;
+            font-size: 18px;
+            margin: 20px 0;
+            line-height: 1.4;
+        }
+
+        #level-complete-overlay .level-stats .stat-value {
+            color: #7f7;
+            font-weight: bold;
+        }
+
+        #next-level-button {
+            padding: 12px 30px;
+            background: linear-gradient(145deg, #ffb347, #ffcc33);
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        #next-level-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 200, 0, 0.5);
+        }
+
+        /* NUOVO: Indicatore di livello */
+        #level-indicator {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(50, 50, 50, 0.8);
+            color: #ffcc33;
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        /* Progresso obiettivo livello */
+        #level-progress-container {
+            width: 90%;
+            height: 8px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 4px;
+            margin: 5px 0 10px;
+            overflow: hidden;
+        }
+
+        #level-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc33, #ff9933);
+            border-radius: 4px;
+            transition: width 0.3s ease-out;
+        }
+
         /* Media queries per dispositivi mobili */
         @media (max-width: 768px) {
             .game-container {
@@ -800,6 +888,19 @@
         <button id="resume-button">Riprendi</button>
         <button id="restart-button">Ricomincia</button>
     </div>
+    
+    <!-- NUOVO: Overlay livello completato -->
+    <div id="level-complete-overlay">
+        <h2>Livello Completato!</h2>
+        <div class="level-stats">
+            Livello <span id="current-level-complete" class="stat-value">1</span> completato<br>
+            Punteggio: <span id="level-score" class="stat-value">0</span><br>
+            Parole trovate: <span id="level-words" class="stat-value">0</span>
+        </div>
+        <div>
+            <button id="next-level-button">Livello Successivo</button>
+        </div>
+    </div>
 
     <div class="game-container">
         <!-- Colonna delle statistiche -->
@@ -816,10 +917,21 @@
                 <span class="label">Pezzi</span>
                 <span id="pieces" class="val">0</span>
             </div>
+            <!-- NUOVO: Livello -->
+            <div class="stat-item">
+                <span class="label">Livello</span>
+                <span id="level" class="val">1</span>
+            </div>
         </div>
         
         <!-- Colonna principale con il gioco -->
         <div class="main-column">
+            <!-- NUOVO: Indicatore di livello e progresso -->
+            <div id="level-indicator">Livello 1</div>
+            <div id="level-progress-container">
+                <div id="level-progress-bar"></div>
+            </div>
+            
             <div id="game"></div>
             <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
         </div>
@@ -881,9 +993,133 @@
         <source src="audio/explode.mp3" type="audio/mp3">
     </audio>
     
+    <!-- NUOVO: Audio per il livello completato -->
+    <audio id="level-up-sound" preload="auto">
+        <source src="audio/level-up.mp3" type="audio/mp3">
+    </audio>
+    
 <script>
-    // Riduzione di due righe: ROWS passa da 19 a 17
-    const COLS = 10, ROWS = 17, START_DROP = 900, VOWEL_TIMEOUT = 3000, CHOICE_PROBABILITY = 0.3, ANIMATION_CLEAR_DURATION = 500;
+    // NUOVO: Configurazione dei livelli
+    const LEVEL_CONFIG = [
+        { 
+            level: 1, 
+            rows: 14,                   // Parte con 14 righe
+            columns: 8,                 // E 8 colonne
+            startDropInterval: 1000,    // Velocità di caduta iniziale
+            scoreToComplete: 1000,      // Punti per completare
+            syls1LetterProb: 0.15,      // Probabilità sillabe da 1 lettera (vocali)
+            syls3LetterProb: 0.15,      // Probabilità sillabe da 3 lettere
+            vowelJokerProb: 0.20,       // Probabilità jolly vocale
+            consonantJokerProb: 0.10    // Probabilità jolly consonante
+        },
+        { 
+            level: 2, 
+            rows: 15, 
+            columns: 9, 
+            startDropInterval: 900, 
+            scoreToComplete: 2000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.18,
+            vowelJokerProb: 0.25,
+            consonantJokerProb: 0.15
+        },
+        { 
+            level: 3, 
+            rows: 16, 
+            columns: 9, 
+            startDropInterval: 800, 
+            scoreToComplete: 3000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.20,
+            vowelJokerProb: 0.25,
+            consonantJokerProb: 0.15
+        },
+        { 
+            level: 4, 
+            rows: 16, 
+            columns: 10, 
+            startDropInterval: 750, 
+            scoreToComplete: 4000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.20,
+            vowelJokerProb: 0.30,
+            consonantJokerProb: 0.20
+        },
+        { 
+            level: 5, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 700, 
+            scoreToComplete: 5000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.25,
+            vowelJokerProb: 0.30,
+            consonantJokerProb: 0.20
+        },
+        { 
+            level: 6, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 650, 
+            scoreToComplete: 6000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.25,
+            vowelJokerProb: 0.35,
+            consonantJokerProb: 0.25
+        },
+        { 
+            level: 7, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 600, 
+            scoreToComplete: 7000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.30,
+            vowelJokerProb: 0.35,
+            consonantJokerProb: 0.25
+        },
+        { 
+            level: 8, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 550, 
+            scoreToComplete: 8000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.30,
+            vowelJokerProb: 0.35,
+            consonantJokerProb: 0.25
+        },
+        { 
+            level: 9, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 500, 
+            scoreToComplete: 9000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.35,
+            vowelJokerProb: 0.40,
+            consonantJokerProb: 0.30
+        },
+        { 
+            level: 10, 
+            rows: 17, 
+            columns: 10, 
+            startDropInterval: 450, 
+            scoreToComplete: 10000,
+            syls1LetterProb: 0.15,
+            syls3LetterProb: 0.35,
+            vowelJokerProb: 0.40,
+            consonantJokerProb: 0.30
+        }
+        // Puoi aggiungere più livelli se necessario
+    ];
+
+    // Variabili iniziali (saranno aggiornate in base al livello)
+    let ROWS = LEVEL_CONFIG[0].rows;
+    let COLS = LEVEL_CONFIG[0].columns;
+    let START_DROP = LEVEL_CONFIG[0].startDropInterval;
+    const VOWEL_TIMEOUT = 3000;
+    const ANIMATION_CLEAR_DURATION = 500;
     
     // --- Sistema audio semplificato ---
     const AudioSystem = {
@@ -891,6 +1127,7 @@
         backgroundMusic: document.getElementById('background-music'),
         hurryUpSound: document.getElementById('hurry-up-sound'),
         explodeSound: document.getElementById('explode-sound'),
+        levelUpSound: document.getElementById('level-up-sound'),
         sfxGainNode: null,
         backgroundMusicActive: true,
         backgroundMusicLoaded: false,
@@ -1151,6 +1388,33 @@
             }
         },
         
+        playLevelUp() {
+            if (!this.levelUpSound) {
+                console.error("Elemento audio per il suono level-up non trovato");
+                return;
+            }
+            
+            try {
+                // Resetta il suono se stava già suonando
+                this.levelUpSound.pause();
+                this.levelUpSound.currentTime = 0;
+                
+                // Imposta volume al 70%
+                this.levelUpSound.volume = 0.7;
+                
+                // Riproduci il suono
+                const playPromise = this.levelUpSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn("Errore riproduzione suono level-up:", error);
+                    });
+                }
+            } catch (e) {
+                console.error("Errore riproduzione level-up:", e);
+            }
+        },
+        
         playSynthSound(type) {
             try {
                 if (!this.audioContext) this.initialize();
@@ -1220,28 +1484,34 @@
     const SYLS_2_LETTERS = [ 
         "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
         "LE", "RI", "ME", "TE", "BO", "DO", "NA", "BI", "CO", "DA", "DI", "FA", "FE", "FI", "FO", "FU", "GA", "GE",
-        "GI", "NI", "PI", "PO", "PU", "RO", "RU", "SE", "SI", "SU", "TA", 
+        "GI", "NI", "PI", "PO", "SE", "SI", "SU", "TA", 
         "TO", "VI", "VO", "DE", "BA", "CE" 
     ]; 
     const SYLS_3_LETTERS = [ 
         "PER", "TOR", "MAN", "CAN", "STR", "PRE", "GRA", "CES", "COS", "DAL", "DEL", "FRA", 
-        "GIA", "GLI", "NON", "PAR", "PIO", "PIU", "PRI", "PRO", "QUA", "QUE", "QUI", "SCA", "SCE",
+        "GIA", "GLI", "NON", "PAR", "PIO", "PIU", "PRI", "PRO", "SCE",
         "SCI", "STA", "STE", "STI", "STO", "TRA", "TRE", "TRI", "TRO", "VER", "VOL", "ZIO", "CAR",
-        "TER", "MEN", "SEN", "CON", "ENT", "INT", "CIO", "CIA"
+        "TER", "MEN", "SEN", "CON", "CIO", "CIA"
     ]; 
-    const PROB_ONE_LETTER_SYL = 0.15; 
-    const PROB_THREE_LETTER_SYL = 0.20;
-    // NUOVE COSTANTI:
-    const VOWEL_CHOICE_PROBABILITY = 0.3;
-    const CONSONANT_CHOICE_PROBABILITY = 0.2;
+    
+    // Queste variabili verranno impostate dal livello corrente
+    let PROB_ONE_LETTER_SYL = LEVEL_CONFIG[0].syls1LetterProb; 
+    let PROB_THREE_LETTER_SYL = LEVEL_CONFIG[0].syls3LetterProb;
+    let VOWEL_CHOICE_PROBABILITY = LEVEL_CONFIG[0].vowelJokerProb;
+    let CONSONANT_CHOICE_PROBABILITY = LEVEL_CONFIG[0].consonantJokerProb;
+    
     // Numero di consonanti da mostrare alla volta per la selezione
     const NUM_CONSONANT_CHOICES = 5;
 
     const DICT = new Set();
     let dizionarioPronto = false;
-    const gameElement = document.getElementById("game");
-    for (let i = 0; i < ROWS * COLS; i++) { const d = document.createElement("div"); d.className = "cell"; gameElement.appendChild(d); }
-    const $ = q => document.querySelectorAll("#game .cell")[q];
+    let gameElement = document.getElementById("game");
+    
+    // MODIFICATO: Funzione di utilità per selezionare celle dinamicamente
+    let $ = function(q) { 
+        return document.querySelectorAll("#game .cell")[q];
+    };
+    
     const idx = (x, y) => (y * COLS + x);
 
     let board, cur, gameLoopTimer, choiceTimerId, score = 0, words = 0, pieces = 0, gameIsOver = false, isChoiceActive = false;
@@ -1256,6 +1526,11 @@
     let currentChainMultiplier = 1.0;  
     let isHurryUpPlaying = false;  
     let timerInterval = null;
+    
+    // NUOVE Variabili per i livelli
+    let currentLevel = 1;
+    let levelStartScore = 0;
+    let scoreToCompleteLevel = LEVEL_CONFIG[0].scoreToComplete;
     
     // NUOVO: Variabile per gestire la pausa
     let gamePaused = false;
@@ -1281,7 +1556,19 @@
         pauseButton: document.getElementById("pause-button"),
         pauseOverlay: document.getElementById("pause-overlay"),
         resumeButton: document.getElementById("resume-button"),
-        restartButton: document.getElementById("restart-button")
+        restartButton: document.getElementById("restart-button"),
+        
+        // NUOVO: Riferimenti per il livello
+        levelIndicator: document.getElementById("level-indicator"),
+        levelVal: document.getElementById("level"),
+        levelProgressBar: document.getElementById("level-progress-bar"),
+        
+        // NUOVO: Riferimenti per overlay completamento livello
+        levelCompleteOverlay: document.getElementById("level-complete-overlay"),
+        currentLevelComplete: document.getElementById("current-level-complete"),
+        levelScore: document.getElementById("level-score"),
+        levelWords: document.getElementById("level-words"),
+        nextLevelButton: document.getElementById("next-level-button")
     };
 
     function randSyl() {
@@ -1516,6 +1803,8 @@
                 actualRowsCleared++; score += 50 * (i + 1); 
             } else break; 
         }
+        // Aggiorna l'UI e verifica avanzamento livello
+        updateScore();
     }
 
     function handleVowelKeyboardChoice(e) {
@@ -1641,7 +1930,9 @@
         } 
         
         if (!isAnimatingClear&&!gameIsOver) {
-            ui.s.textContent = score; ui.w.textContent = words;
+            // Aggiorna l'UI e verifica avanzamento livello
+            updateScore();
+            
             cur = newPiece(); 
             
             if (cur.isBomb) { 
@@ -1656,6 +1947,115 @@
                 clearInterval(gameLoopTimer); 
                 gameLoopTimer = setInterval(gameStep, currentDropInterval); 
             }
+        }
+    }
+    
+    // NUOVO: Funzione per aggiornare punteggio e verificare avanzamento livello
+    function updateScore() {
+        ui.s.textContent = score;
+        ui.w.textContent = words;
+        
+        // Calcola il progresso del livello
+        const levelProgress = Math.min(100, ((score - levelStartScore) / scoreToCompleteLevel) * 100);
+        
+        // Aggiorna la barra di progresso
+        ui.levelProgressBar.style.width = `${levelProgress}%`;
+        
+        // Verifica se il livello è stato completato
+        if (score >= (levelStartScore + scoreToCompleteLevel)) {
+            // Livello completato!
+            handleLevelComplete();
+        }
+    }
+    
+    // NUOVO: Gestione del livello completato
+    function handleLevelComplete() {
+        if (gameIsOver || isAnimatingClear) return;
+        
+        // Pausa il gioco
+        gamePaused = true;
+        clearInterval(gameLoopTimer);
+        
+        // Suono livello completato
+        AudioSystem.playLevelUp();
+        
+        // Aggiorna l'UI dell'overlay
+        ui.currentLevelComplete.textContent = currentLevel;
+        ui.levelScore.textContent = score;
+        ui.levelWords.textContent = words;
+        
+        // Mostra l'overlay
+        ui.levelCompleteOverlay.style.display = "flex";
+    }
+    
+    // NUOVO: Passa al livello successivo
+    function startNextLevel() {
+        if (currentLevel >= LEVEL_CONFIG.length) {
+            // Hai completato tutti i livelli!
+            alert("Congratulazioni! Hai completato tutti i livelli del gioco!");
+            loadDictionaryAndInitGame(); // Ricomincia dal livello 1
+            return;
+        }
+        
+        currentLevel++;
+        const levelConfig = LEVEL_CONFIG[currentLevel - 1];
+        
+        // Nascondi l'overlay
+        ui.levelCompleteOverlay.style.display = "none";
+        
+        // Aggiorna le variabili del livello
+        ROWS = levelConfig.rows;
+        COLS = levelConfig.columns;
+        START_DROP = levelConfig.startDropInterval;
+        currentDropInterval = START_DROP;
+        
+        // Aggiorna le probabilità
+        PROB_ONE_LETTER_SYL = levelConfig.syls1LetterProb;
+        PROB_THREE_LETTER_SYL = levelConfig.syls3LetterProb;
+        VOWEL_CHOICE_PROBABILITY = levelConfig.vowelJokerProb;
+        CONSONANT_CHOICE_PROBABILITY = levelConfig.consonantJokerProb;
+        
+        // Salva il punteggio attuale come inizio del nuovo livello
+        levelStartScore = score;
+        scoreToCompleteLevel = levelConfig.scoreToComplete;
+        
+        // Aggiorna l'UI del livello
+        ui.levelVal.textContent = currentLevel;
+        ui.levelIndicator.textContent = `Livello ${currentLevel}`;
+        ui.levelProgressBar.style.width = "0%";
+        
+        // Ricrea la griglia con le nuove dimensioni
+        recreateGameGrid();
+        
+        // Ricrea il board con le nuove dimensioni
+        board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        
+        // Aggiorna la funzione di selezione celle in base alle nuove dimensioni
+        $ = function(q) { 
+            return document.querySelectorAll("#game .cell")[q];
+        };
+        
+        // Ricrea un pezzo e riprendi il gioco
+        cur = newPiece();
+        draw();
+        
+        gamePaused = false;
+        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+    }
+    
+    // NUOVO: Funzione per ricreare la griglia di gioco
+    function recreateGameGrid() {
+        // Svuota il contenitore
+        gameElement.innerHTML = '';
+        
+        // Aggiorna lo stile CSS per le nuove dimensioni
+        gameElement.style.gridTemplateColumns = `repeat(${COLS}, 38px)`;
+        
+        // Crea le nuove celle
+        for (let i = 0; i < ROWS * COLS; i++) {
+            const d = document.createElement("div");
+            d.className = "cell";
+            gameElement.appendChild(d);
         }
     }
 
@@ -1723,7 +2123,12 @@
                             bombPower = numberOfSyllablesInGrid - 2;
                             bombaAttivataQuestoTurno = true;
                         }
-                        score += wordAttempt.length * 10; words++;
+                        
+                        // MODIFICATO: Punti in base alla lunghezza della parola, moltiplicati per il livello attuale
+                        const wordScore = wordAttempt.length * 10 * currentLevel;
+                        score += wordScore;
+                        words++;
+                        
                         if (bombaAttivataQuestoTurno) {
                             ui.lastWordVal.innerHTML = wordAttempt + `<br><span style="color:orange;font-weight:bold;">BOMBA PRONTA! (${bombPower} righe)</span>`;
                         } else {
@@ -2025,24 +2430,72 @@
 
     function initializeActualGame() {
         if (!dizionarioPronto) { console.error("InitializeActualGame: Dizionario non pronto."); return; }
-        gameIsOver = false; isChoiceActive = false; isVowelChoice = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false;
-        isNextPieceBomb = false; bombPower = 0; 
-        chainCount = 0; currentChainMultiplier = 1.0; 
+        
+        // Azzera tutte le variabili
+        gameIsOver = false; 
+        isChoiceActive = false; 
+        isVowelChoice = false; 
+        isAnimatingClear = false; 
+        pendingBoardUpdateAfterAnimation = false;
+        isNextPieceBomb = false; 
+        bombPower = 0; 
+        chainCount = 0; 
+        currentChainMultiplier = 1.0; 
         isHurryUpPlaying = false;
         gamePaused = false;
+        
+        // NUOVO: Inizializza il livello
+        currentLevel = 1;
+        const levelConfig = LEVEL_CONFIG[currentLevel - 1];
+        
+        // Aggiorna le dimensioni
+        ROWS = levelConfig.rows;
+        COLS = levelConfig.columns;
+        START_DROP = levelConfig.startDropInterval;
+        
+        // Aggiorna le probabilità
+        PROB_ONE_LETTER_SYL = levelConfig.syls1LetterProb;
+        PROB_THREE_LETTER_SYL = levelConfig.syls3LetterProb;
+        VOWEL_CHOICE_PROBABILITY = levelConfig.vowelJokerProb;
+        CONSONANT_CHOICE_PROBABILITY = levelConfig.consonantJokerProb;
+        
+        // Aggiorna l'UI del livello
+        ui.levelVal.textContent = currentLevel;
+        ui.levelIndicator.textContent = `Livello ${currentLevel}`;
+        ui.levelProgressBar.style.width = "0%";
+        
+        levelStartScore = 0;
+        scoreToCompleteLevel = levelConfig.scoreToComplete;
 
         stopTimers();
 
         // Nascondi overlay di pausa se visibile
         ui.pauseOverlay.style.display = 'none';
+        
+        // Nascondi overlay di livello completato se visibile
+        ui.levelCompleteOverlay.style.display = 'none';
 
         clearTimeout(choiceTimerId);
         if (document.activeElement&&typeof document.activeElement.blur === 'function') document.activeElement.blur();
         document.removeEventListener('keydown', handleVowelKeyboardChoice);
         document.removeEventListener('keydown', handleConsonantKeyboardChoice);
         
+        // Ricrea la griglia con le nuove dimensioni
+        recreateGameGrid();
+        
+        // Inizializza il board
         board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-        score = 0; words = 0; pieces = 0; ui.s.textContent = 0; ui.w.textContent = 0; ui.p.textContent = 0; ui.lastWordVal.textContent = "---";
+        
+        // Aggiorna la funzione di selezione celle in base alle nuove dimensioni
+        $ = function(q) { 
+            return document.querySelectorAll("#game .cell")[q];
+        };
+        
+        score = 0; words = 0; pieces = 0; 
+        ui.s.textContent = 0; 
+        ui.w.textContent = 0; 
+        ui.p.textContent = 0; 
+        ui.lastWordVal.textContent = "---";
         
         cur = newPiece(); 
         if (cur.isBomb) { 
@@ -2053,7 +2506,9 @@
         
         draw();
         clearInterval(gameLoopTimer);
-        if (!isAnimatingClear&&!gameIsOver) { gameLoopTimer = setInterval(gameStep, currentDropInterval); }
+        if (!isAnimatingClear&&!gameIsOver) { 
+            gameLoopTimer = setInterval(gameStep, currentDropInterval); 
+        }
         
         AudioSystem.initialize();
         setupTouchControls();
@@ -2076,7 +2531,10 @@
             isChoiceActive = false;
         }
         draw(); 
-        setTimeout(() => { alert(`GAME OVER\nPunti ${score}\nParole ${words}\nPezzi ${pieces}`); loadDictionaryAndInitGame(); }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
+        setTimeout(() => { 
+            alert(`GAME OVER\nLivello: ${currentLevel}\nPunti ${score}\nParole ${words}\nPezzi ${pieces}`); 
+            loadDictionaryAndInitGame(); 
+        }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
     }
 
     async function loadDictionaryAndInitGame() {
@@ -2110,6 +2568,9 @@
         ui.pauseOverlay.style.display = 'none';
         loadDictionaryAndInitGame();
     });
+    
+    // NUOVO: Event listener per il pulsante passa al livello successivo
+    ui.nextLevelButton.addEventListener('click', startNextLevel);
     
     document.getElementById('start-game-button').addEventListener('click', function() {
         document.getElementById('audio-start-overlay').style.display = 'none';
