@@ -526,6 +526,51 @@
             transition: width 0.3s ease-out;
         }
 
+        /* Stile per la selezione della lingua */
+        .settings-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .language-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(40, 40, 40, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .language-options {
+            display: flex;
+            gap: 2px;
+        }
+
+        .language-option {
+            background: rgba(60, 60, 60, 0.8);
+            color: #ddd;
+            border: none;
+            width: 32px;
+            height: 28px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .language-option:hover {
+            background: rgba(80, 80, 80, 0.9);
+        }
+
+        .language-option.active {
+            background: rgba(42, 136, 110, 0.8);
+            color: white;
+            font-weight: bold;
+        }
+
         /* Media queries per dispositivi mobili */
         @media (max-width: 768px) {
             .game-container {
@@ -871,11 +916,20 @@
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
         <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
-        <div>
+        <div class="settings-row">
             <button id="toggle-music" class="active">Musica: ON</button>
+            
+            <!-- NUOVO: Selezione lingua -->
+            <div class="language-selector">
+                <span>Lingua:</span>
+                <div class="language-options">
+                    <button class="language-option active" value="ita">IT</button>
+                    <button class="language-option" value="eng">EN</button>
+                </div>
+            </div>
         </div>
         <h2>WordTris</h2>
-        <p>Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
+        <p id="game-description">Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
         <button id="start-game-button">Inizia</button>
     </div>
 
@@ -999,6 +1053,227 @@
     </audio>
     
 <script>
+    // NUOVO: Sistema di gestione dizionario
+    const DictionarySystem = {
+        // Lingua corrente
+        currentLanguage: 'ita',
+        
+        // Dati del dizionario per lingua
+        dictionaries: {
+            ita: {
+                words: new Set(),           // Parole complete
+                syllabified: new Map(),     // Mappatura parola -> sillabe
+                syllables: new Set(),       // Tutte le sillabe
+                syllableStats: new Map(),   // Statistiche sillabe (frequenza)
+                syllableByLength: {         // Sillabe organizzate per lunghezza
+                    1: [],
+                    2: [],
+                    3: []
+                }
+            },
+            eng: {
+                words: new Set(),
+                syllabified: new Map(),
+                syllables: new Set(),
+                syllableStats: new Map(),
+                syllableByLength: {
+                    1: [],
+                    2: [],
+                    3: []
+                }
+            }
+        },
+        
+        // Carica il dizionario per la lingua specificata
+        async loadDictionary(language) {
+            try {
+                // Inizializza la struttura se non esiste
+                if (!this.dictionaries[language]) {
+                    this.dictionaries[language] = {
+                        words: new Set(),
+                        syllabified: new Map(),
+                        syllables: new Set(),
+                        syllableStats: new Map(),
+                        syllableByLength: {
+                            1: [],
+                            2: [],
+                            3: []
+                        }
+                    };
+                }
+                
+                // Riferimenti più brevi
+                const dict = this.dictionaries[language];
+                
+                // Resetta le strutture dati
+                dict.words.clear();
+                dict.syllabified.clear();
+                dict.syllables.clear();
+                dict.syllableStats.clear();
+                dict.syllableByLength = { 1: [], 2: [], 3: [] };
+                
+                // Carica il dizionario sillabato
+                const response = await fetch(`data/dictionary_${language}.txt`);
+                
+                // Se non trova il dizionario sillabato, prova con quello normale
+                if (!response.ok) {
+                    return await this.loadLegacyDictionary(language);
+                }
+                
+                const text = await response.text();
+                const lines = text.trim().split(/\r?\n/);
+                
+                // Processa ogni riga nel formato "parola [sil-sil-sil]"
+                for (const line of lines) {
+                    const match = line.match(/^([^\s]+)\s+\[([^\]]+)\]$/);
+                    
+                    if (match) {
+                        const word = match[1].toUpperCase();
+                        const syllablesStr = match[2];
+                        const syllables = syllablesStr.split('-').map(s => s.trim().toUpperCase());
+                        
+                        // Aggiungi al set di parole
+                        dict.words.add(word);
+                        
+                        // Salva la sillabazione
+                        dict.syllabified.set(word, syllables);
+                        
+                        // Aggiorna statistiche sillabe
+                        syllables.forEach(syl => {
+                            // Aggiungi al set di sillabe
+                            dict.syllables.add(syl);
+                            
+                            // Incrementa frequenza
+                            dict.syllableStats.set(syl, (dict.syllableStats.get(syl) || 0) + 1);
+                            
+                            // Aggiungi alla lista corrispondente alla lunghezza
+                            const len = syl.length;
+                            if (len >= 1&&len <= 3&&!dict.syllableByLength[len].includes(syl)) {
+                                dict.syllableByLength[len].push(syl);
+                            }
+                        });
+                    }
+                }
+                
+                // Aggiorna le liste globali di sillabe (solo per la lingua corrente)
+                if (language === this.currentLanguage) {
+                    this.updateGlobalSyllableLists();
+                }
+                
+                console.log(`Dizionario sillabato ${language} caricato: ${dict.words.size} parole, ${dict.syllables.size} sillabe uniche`);
+                return true;
+                
+            } catch (error) {
+                console.error(`Errore caricamento dizionario ${language}:`, error);
+                return false;
+            }
+        },
+        
+        // Carica il dizionario in formato legacy (solo elenco di parole)
+        async loadLegacyDictionary(language) {
+            try {
+                const dict = this.dictionaries[language];
+                
+                // Carica il dizionario normale
+                const filename = language === 'ita' ? 'dizionario.txt' : `dictionary_${language}.txt`;
+                const response = await fetch(`data/${filename}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Dizionario non trovato: ${filename}`);
+                }
+                
+                const text = await response.text();
+                const words = text.trim().split(/\r?\n/);
+                
+                for (const word of words) {
+                    const cleanWord = word.trim().toUpperCase();
+                    if (cleanWord) {
+                        dict.words.add(cleanWord);
+                    }
+                }
+                
+                // In questo caso non abbiamo informazioni sulle sillabe
+                console.log(`Dizionario standard ${language} caricato: ${dict.words.size} parole, 0 sillabe`);
+                return true;
+                
+            } catch (error) {
+                console.error(`Errore caricamento dizionario legacy ${language}:`, error);
+                return false;
+            }
+        },
+        
+        // Cambia la lingua corrente e carica il relativo dizionario
+        async changeLanguage(language) {
+            if (language === this.currentLanguage) return true;
+            
+            const success = await this.loadDictionary(language);
+            if (success) {
+                this.currentLanguage = language;
+                this.updateGlobalSyllableLists();
+                return true;
+            }
+            return false;
+        },
+        
+        // Verifica se una parola è valida
+        isValidWord(word) {
+            const dict = this.dictionaries[this.currentLanguage];
+            return dict.words.has(word.toUpperCase());
+        },
+        
+        // Ottieni la lista delle sillabe per una parola
+        getSyllables(word) {
+            const dict = this.dictionaries[this.currentLanguage];
+            return dict.syllabified.get(word.toUpperCase()) || null;
+        },
+        
+        // Aggiorna le liste globali con le sillabe della lingua corrente
+        updateGlobalSyllableLists() {
+            const dict = this.dictionaries[this.currentLanguage];
+            
+            // Aggiorna le liste globali solo se abbiamo sillabe
+            if (dict.syllableByLength[1].length > 0) {
+                SYLS_1_LETTER = [...dict.syllableByLength[1]];
+            }
+            if (dict.syllableByLength[2].length > 0) {
+                SYLS_2_LETTERS = [...dict.syllableByLength[2]];
+            }
+            if (dict.syllableByLength[3].length > 0) {
+                SYLS_3_LETTERS = [...dict.syllableByLength[3]];
+            }
+            
+            console.log("Liste globali sillabe aggiornate");
+        },
+        
+        // Ottieni le sillabe più comuni
+        getMostCommonSyllables(count = 20) {
+            const dict = this.dictionaries[this.currentLanguage];
+            
+            // Ordina le sillabe per frequenza (decrescente)
+            const sortedEntries = [...dict.syllableStats.entries()]
+                .sort((a, b) => b[1] - a[1]);
+            
+            // Ritorna le prime 'count' sillabe
+            return sortedEntries.slice(0, count).map(entry => entry[0]);
+        },
+        
+        // Ottieni statistiche per debugging
+        getStats() {
+            const dict = this.dictionaries[this.currentLanguage];
+            return {
+                language: this.currentLanguage,
+                totalWords: dict.words.size,
+                totalSyllables: dict.syllables.size,
+                syllablesByLength: {
+                    1: dict.syllableByLength[1].length,
+                    2: dict.syllableByLength[2].length,
+                    3: dict.syllableByLength[3].length
+                },
+                mostCommonSyllables: this.getMostCommonSyllables(10)
+            };
+        }
+    };
+
     // NUOVO: Configurazione dei livelli
     const LEVEL_CONFIG = [
         { 
@@ -1480,14 +1755,14 @@
     // --- Dati di gioco ---
     const VOWELS = ["A", "E", "I", "O", "U"];
     const CONSONANTS = ["B", "C", "D", "F", "G", "H", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "Z"];
-    const SYLS_1_LETTER = ["A", "E", "I", "O", "U"]; 
-    const SYLS_2_LETTERS = [ 
+    let SYLS_1_LETTER = ["A", "E", "I", "O", "U"]; 
+    let SYLS_2_LETTERS = [ 
         "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
         "LE", "RI", "ME", "TE", "BO", "DO", "NA", "BI", "CO", "DA", "DI", "FA", "FE", "FI", "FO", "FU", "GA", "GE",
         "GI", "NI", "PI", "PO", "SE", "SI", "SU", "TA", 
         "TO", "VI", "VO", "DE", "BA", "CE" 
     ]; 
-    const SYLS_3_LETTERS = [ 
+    let SYLS_3_LETTERS = [ 
         "PER", "TOR", "MAN", "CAN", "STR", "PRE", "GRA", "CES", "COS", "DAL", "DEL", "FRA", 
         "GIA", "GLI", "NON", "PAR", "PIO", "PIU", "PRI", "PRO", "SCE",
         "SCI", "STA", "STE", "STI", "STO", "TRA", "TRE", "TRI", "TRO", "VER", "VOL", "ZIO", "CAR",
@@ -1568,7 +1843,11 @@
         currentLevelComplete: document.getElementById("current-level-complete"),
         levelScore: document.getElementById("level-score"),
         levelWords: document.getElementById("level-words"),
-        nextLevelButton: document.getElementById("next-level-button")
+        nextLevelButton: document.getElementById("next-level-button"),
+        
+        // NUOVO: Riferimenti per la selezione della lingua
+        gameDescription: document.getElementById("game-description"),
+        startButton: document.getElementById("start-game-button")
     };
 
     function randSyl() {
@@ -2105,10 +2384,21 @@
         if (gameIsOver || isAnimatingClear) return false;
         for (let len = run.length; len >= 2; len--) {
             for (let i = 0; i <= run.length - len; i++) {
-                const subRun = run.slice(i, i + len); const wordAttempt = subRun.map(item => item.syl).join("");
-                if (DICT.has(wordAttempt)) {
+                const subRun = run.slice(i, i + len); 
+                const wordAttempt = subRun.map(item => item.syl).join("");
+                
+                // MODIFICATO: Usa il nuovo sistema per verificare le parole
+                if (DICT.has(wordAttempt) || DictionarySystem.isValidWord(wordAttempt)) {
                     let cellsAreValid = true;
-                    for(const item of subRun) { const r_val = isHorizontal ? fixedCoord : item.r; const c_val = isHorizontal ? item.c : fixedCoord; if(!board[r_val] || board[r_val][c_val] !== item.syl || board[r_val][c_val] === 'CLEARING_PLACEHOLDER') { cellsAreValid = false; break; }}
+                    for(const item of subRun) { 
+                        const r_val = isHorizontal ? fixedCoord : item.r; 
+                        const c_val = isHorizontal ? item.c : fixedCoord; 
+                        if(!board[r_val] || board[r_val][c_val] !== item.syl || board[r_val][c_val] === 'CLEARING_PLACEHOLDER') { 
+                            cellsAreValid = false; 
+                            break; 
+                        }
+                    }
+                    
                     if(cellsAreValid) {
                         playSound('word');
                         
@@ -2332,13 +2622,17 @@
         }
     }
 
-    document.addEventListener("keydown", e => {
-        const activeElement = document.activeElement;
-        if (activeElement&&(activeElement.id === 'music-volume' || activeElement.id === 'sfx-volume')) {
-            if (e.code === "ArrowLeft" || e.code === "ArrowRight" || 
-                e.code === "ArrowUp" || e.code === "ArrowDown") {
-                activeElement.blur();
-            }
+    document.addEventListener("keydown", function(e) {
+        // CORREZIONE: Non cattura l'evento keydown quando si seleziona o interagisce con controlli audio
+        // Questo blocco previene che le frecce controllino i pezzi quando si interagisce con i controlli
+        if (e.target&&e.target.tagName&&(
+            e.target.tagName.toLowerCase() === 'input' || 
+            e.target.tagName.toLowerCase() === 'button' || 
+            e.target.id === 'toggle-music'
+        )) {
+            // Se l'utente sta interagendo con un input o un button, 
+            // lascia che l'evento sia gestito normalmente
+            return;
         }
         
         // Gestione tasto P per pausa
@@ -2350,10 +2644,22 @@
         // Non permettere movimenti quando in pausa
         if (gamePaused) return;
         
-        if (e.code === "ArrowLeft") handleMove('left');
-        else if (e.code === "ArrowRight") handleMove('right');
-        else if (e.code === "ArrowDown") handleMove('down');
-        else if (e.code === "ArrowUp") handleMove('rotate');
+        if (e.code === "ArrowLeft") {
+            e.preventDefault(); // Previene lo scroll della pagina
+            handleMove('left');
+        }
+        else if (e.code === "ArrowRight") {
+            e.preventDefault();
+            handleMove('right');
+        }
+        else if (e.code === "ArrowDown") {
+            e.preventDefault();
+            handleMove('down');
+        }
+        else if (e.code === "ArrowUp") {
+            e.preventDefault();
+            handleMove('rotate');
+        }
     });
 
     function applyDeviceSpecificOptimizations() {
@@ -2537,19 +2843,95 @@
         }, 100 + (isAnimatingClear ? ANIMATION_CLEAR_DURATION : 0) );
     }
 
+    // MODIFICATA: Funzione di caricamento del dizionario nel gioco principale
     async function loadDictionaryAndInitGame() {
         gameIsOver = false; isAnimatingClear = false; pendingBoardUpdateAfterAnimation = false; clearInterval(gameLoopTimer);
-        DICT.clear(); dizionarioPronto = false; 
+        DICT.clear();
+        dizionarioPronto = false; 
+        
         ui.lastWordVal.textContent = "CARICAMENTO...";
+        
         try {
-            const response = await fetch('data/dizionario.txt');
-            if (!response.ok) throw new Error(`Errore HTTP! Status: ${response.status} (${response.statusText}) per data/dizionario.txt`);
-            const text = await response.text(); const paroleCaricate = text.trim().split(/\r?\n/);
-            paroleCaricate.forEach(word => { const parolaPulita = word.trim().toUpperCase(); if (parolaPulita.length > 0) DICT.add(parolaPulita); });
-            if (DICT.size === 0&&paroleCaricate.length > 0) console.warn("Dizionario caricato ma DICT è vuoto.");
-            else if (DICT.size === 0) console.warn("Nessuna parola caricata nel dizionario.");
-            dizionarioPronto = true; ui.lastWordVal.textContent = "---"; initializeActualGame();
-        } catch (error) { console.error("Impossibile caricare il dizionario:", error); alert("Errore caricamento dizionario: " + error.message + "\nControlla console."); ui.lastWordVal.textContent = "ERRORE DIZIONARIO"; }
+            // Carica il dizionario usando il nuovo sistema
+            const success = await DictionarySystem.loadDictionary(DictionarySystem.currentLanguage);
+            
+            if (success) {
+                // Copia tutte le parole nel DICT globale per compatibilità con il codice esistente
+                DictionarySystem.dictionaries[DictionarySystem.currentLanguage].words.forEach(word => {
+                    DICT.add(word);
+                });
+                
+                // Logga alcune statistiche
+                console.log(DictionarySystem.getStats());
+                
+                dizionarioPronto = true;
+                ui.lastWordVal.textContent = "---"; 
+                initializeActualGame();
+            } else {
+                throw new Error(`Impossibile caricare il dizionario per la lingua ${DictionarySystem.currentLanguage}`);
+            }
+        } catch (error) { 
+            console.error("Errore caricamento dizionario:", error); 
+            alert("Errore caricamento dizionario: " + error.message + "\nControlla console."); 
+            ui.lastWordVal.textContent = "ERRORE DIZIONARIO"; 
+        }
+    }
+    
+    // NUOVO: Funzione per cambiare lingua
+    async function changeLanguage(language) {
+        if (dizionarioPronto) {
+            // Se il gioco è già iniziato, metti in pausa
+            const wasPaused = gamePaused;
+            if (!gamePaused) togglePause();
+            
+            // Cambia lingua
+            const success = await DictionarySystem.changeLanguage(language);
+            
+            if (success) {
+                // Aggiorna la UI
+                document.querySelectorAll('.language-option').forEach(option => {
+                    option.classList.toggle('active', option.value === language);
+                });
+                
+                // Ricarica il dizionario e il gioco
+                loadDictionaryAndInitGame();
+                
+                // Se il gioco era in pausa, mantienilo in pausa
+                if (!wasPaused) togglePause();
+            } else {
+                alert(`Impossibile cambiare la lingua in ${language}`);
+            }
+        } else {
+            // Se il gioco non è ancora iniziato, cambia solo l'opzione
+            DictionarySystem.currentLanguage = language;
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.toggle('active', option.value === language);
+            });
+            
+            // Aggiorna i testi dell'interfaccia
+            updateUITexts(language);
+        }
+    }
+    
+    // NUOVO: Funzione per aggiornare i testi dell'interfaccia utente nella lingua selezionata
+    function updateUITexts(language) {
+        // Testi multilingua
+        const texts = {
+            ita: {
+                description: "Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!",
+                startButton: "Inizia"
+            },
+            eng: {
+                description: "A word game inspired by Tetris. Create English words using the falling syllables!",
+                startButton: "Start"
+            }
+        };
+        
+        // Aggiorna i testi in base alla lingua
+        if (texts[language]) {
+            ui.gameDescription.textContent = texts[language].description;
+            ui.startButton.textContent = texts[language].startButton;
+        }
     }
     
     // NUOVO: Gestione pausa automatica quando la pagina va in background
@@ -2572,6 +2954,15 @@
     // NUOVO: Event listener per il pulsante passa al livello successivo
     ui.nextLevelButton.addEventListener('click', startNextLevel);
     
+    // NUOVO: Event listeners per i pulsanti di selezione lingua
+    document.querySelectorAll('.language-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const lang = this.value;
+            changeLanguage(lang);
+        });
+    });
+    
+    // MODIFICATO: Event listener per il pulsante di avvio
     document.getElementById('start-game-button').addEventListener('click', function() {
         document.getElementById('audio-start-overlay').style.display = 'none';
         
@@ -2613,7 +3004,8 @@
 
     // Applica ottimizzazioni quando la pagina viene caricata
     document.addEventListener('DOMContentLoaded', function() {
-        // Le ottimizzazioni verranno applicate più tardi quando il gioco viene avviato
+        // Inizializza la lingua all'avvio
+        updateUITexts(DictionarySystem.currentLanguage);
     });
 
     // Gestisci gli adattamenti anche durante il ridimensionamento

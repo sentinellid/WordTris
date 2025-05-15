@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WordTris</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Overlay per l'avvio dell'audio -->
+    <div id="audio-start-overlay">
+        <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <div class="settings-row">
+            <button id="toggle-music" class="active">Musica: ON</button>
+            
+            <!-- NUOVO: Selezione lingua -->
+            <div class="language-selector">
+                <span>Lingua:</span>
+                <div class="language-options">
+                    <button class="language-option active" value="ita">IT</button>
+                    <button class="language-option" value="eng">EN</button>
+                </div>
+            </div>
+        </div>
+        <h2>WordTris</h2>
+        <p id="game-description">Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
+        <button id="start-game-button">Inizia</button>
+    </div>
+
+    <!-- Pulsante pausa -->
+    <div id="pause-button">⏸️</div>
+
+    <!-- Overlay di pausa -->
+    <div id="pause-overlay">
+        <h2>Pausa</h2>
+        <button id="resume-button">Riprendi</button>
+        <button id="restart-button">Ricomincia</button>
+    </div>
+    
+    <!-- NUOVO: Overlay livello completato -->
+    <div id="level-complete-overlay">
+        <h2>Livello Completato!</h2>
+        <div class="level-stats">
+            Livello <span id="current-level-complete" class="stat-value">1</span> completato<br>
+            Punteggio: <span id="level-score" class="stat-value">0</span><br>
+            Parole trovate: <span id="level-words" class="stat-value">0</span>
+        </div>
+        <div>
+            <button id="next-level-button">Livello Successivo</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- Colonna delle statistiche -->
+        <div class="stats-column">
+            <div class="stat-item">
+                <span class="label">Punti</span>
+                <span id="score" class="val">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Parole</span>
+                <span id="words" class="val">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Pezzi</span>
+                <span id="pieces" class="val">0</span>
+            </div>
+            <!-- NUOVO: Livello -->
+            <div class="stat-item">
+                <span class="label">Livello</span>
+                <span id="level" class="val">1</span>
+            </div>
+        </div>
+        
+        <!-- Colonna principale con il gioco -->
+        <div class="main-column">
+            <!-- NUOVO: Indicatore di livello e progresso -->
+            <div id="level-indicator">Livello 1</div>
+            <div id="level-progress-container">
+                <div id="level-progress-bar"></div>
+            </div>
+            
+            <div id="game"></div>
+            <div id="last-word-display">Ultima Parola: <span id="last-word-val" class="val">---</span></div>
+        </div>
+    </div>
+    
+    <!-- NUOVO: Modal popup per la selezione di vocali -->
+    <div id="vowel-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">Scegli una vocale (o premi A,E,I,O,U)</div>
+            <div class="modal-timer">
+                <div id="vowel-timer" class="timer-bar"></div>
+            </div>
+            <div class="selection-buttons">
+                <button class="selection-button vowel-button" data-vowel="A">A</button>
+                <button class="selection-button vowel-button" data-vowel="E">E</button>
+                <button class="selection-button vowel-button" data-vowel="I">I</button>
+                <button class="selection-button vowel-button" data-vowel="O">O</button>
+                <button class="selection-button vowel-button" data-vowel="U">U</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- NUOVO: Modal popup per la selezione di consonanti -->
+    <div id="consonant-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">Scegli una consonante</div>
+            <div class="modal-timer">
+                <div id="consonant-timer" class="timer-bar"></div>
+            </div>
+            <div class="selection-buttons" id="consonant-buttons">
+                <!-- I pulsanti delle consonanti verranno generati dinamicamente qui -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="sound-indicator">♪</div>
+    <div id="audio-loading">Caricamento audio...</div>
+    
+    <!-- Controlli touch per dispositivi mobili -->
+    <div id="touch-controls">
+        <div class="touch-button" id="touch-left">⬅️</div>
+        <div class="touch-button" id="touch-rotate">🔄</div>
+        <div class="touch-button" id="touch-down">⬇️</div>
+        <div class="touch-button" id="touch-right">➡️</div>
+    </div>
+    
+    <!-- Audio background nascosto -->
+    <audio id="background-music" loop preload="auto">
+        <source src="audio/background_music.mp3" type="audio/mp3">
+    </audio>
+    
+    <!-- Audio hurry-up per la scelta vocale -->
+    <audio id="hurry-up-sound" preload="auto">
+        <source src="audio/hurry-up.mp3" type="audio/mp3">
+    </audio>
+    
+    <!-- Audio per l'esplosione del tetramino -->
+    <audio id="explode-sound" preload="auto">
+        <source src="audio/explode.mp3" type="audio/mp3">
+    </audio>
+    
+    <!-- NUOVO: Audio per il livello completato -->
+    <audio id="level-up-sound" preload="auto">
+        <source src="audio/level-up.mp3" type="audio/mp3">
+    </audio>
+    
+    <script src="js/dictionary.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
