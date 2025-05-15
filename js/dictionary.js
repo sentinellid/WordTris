@@ -174,20 +174,48 @@ const DictionarySystem = {
     
     // Aggiorna le liste globali con le sillabe della lingua corrente
     updateGlobalSyllableLists() {
-        const dict = this.dictionaries[this.currentLanguage];
+        // Ignora completamente le sillabe generate dal dizionario
+        // e usa invece liste predefinite e verificate di sillabe italiane
         
-        // Aggiorna le liste globali solo se abbiamo sillabe
-        if (dict.syllableByLength[1].length > 0) {
-            SYLS_1_LETTER = [...dict.syllableByLength[1]];
-        }
-        if (dict.syllableByLength[2].length > 0) {
-            SYLS_2_LETTERS = [...dict.syllableByLength[2]];
-        }
-        if (dict.syllableByLength[3].length > 0) {
-            SYLS_3_LETTERS = [...dict.syllableByLength[3]];
-        }
+        SYLS_1_LETTER = ["A", "E", "I", "O", "U"];
         
-        console.log("Liste globali sillabe aggiornate");
+        SYLS_2_LETTERS = [
+                            "RA",
+                            "RE",
+                            "RI",
+                            "CO",
+                            "CA",
+                            "TA",
+                            "TO",
+                            "TE",
+                            "TI",
+                            "MA",
+                            "ME",
+                            "MI",
+                            "NO",
+                            "NE",
+                            "LA"
+                            ];
+                                    
+        SYLS_3_LETTERS = [
+                            "PRE",
+                            "PRO",
+                            "TRA",
+                            "CON",
+                            "PER",
+                            "MEN",
+                            "TRO",
+                            "TER",
+                            "PAR",
+                            "COR",
+                            "CAR",
+                            "POR",
+                            "STA",
+                            "FOR",
+                            "CEN"
+                        ];
+        
+        console.log("Liste globali sillabe aggiornate con sillabe autentiche italiane");
     },
     
     // Ottieni le sillabe più comuni

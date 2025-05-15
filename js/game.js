@@ -124,18 +124,8 @@ const ANIMATION_CLEAR_DURATION = 500;
 const VOWELS = ["A", "E", "I", "O", "U"];
 const CONSONANTS = ["B", "C", "D", "F", "G", "H", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "Z"];
 let SYLS_1_LETTER = ["A", "E", "I", "O", "U"]; 
-let SYLS_2_LETTERS = [ 
-    "PA", "RA", "MA", "NO", "SO", "LA", "MO", "NE", "LI", "PE", "RE", "TI", "CA", "SA", "LO", "MI", "CI", "VA",
-    "LE", "RI", "ME", "TE", "BO", "DO", "NA", "BI", "CO", "DA", "DI", "FA", "FE", "FI", "FO", "FU", "GA", "GE",
-    "GI", "NI", "PI", "PO", "SE", "SI", "SU", "TA", 
-    "TO", "VI", "VO", "DE", "BA", "CE" 
-]; 
-let SYLS_3_LETTERS = [ 
-    "PER", "TOR", "MAN", "CAN", "STR", "PRE", "GRA", "CES", "COS", "DAL", "DEL", "FRA", 
-    "GIA", "GLI", "NON", "PAR", "PIO", "PIU", "PRI", "PRO", "SCE",
-    "SCI", "STA", "STE", "STI", "STO", "TRA", "TRE", "TRI", "TRO", "VER", "VOL", "ZIO", "CAR",
-    "TER", "MEN", "SEN", "CON", "CIO", "CIA"
-]; 
+let SYLS_2_LETTERS = []; 
+let SYLS_3_LETTERS = []; 
 
 // Queste variabili verranno impostate dal livello corrente
 let PROB_ONE_LETTER_SYL = LEVEL_CONFIG[0].syls1LetterProb; 
