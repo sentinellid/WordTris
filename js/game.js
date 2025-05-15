@@ -2,7 +2,7 @@
 const LEVEL_CONFIG = [
     { 
         level: 1, 
-        rows: 14,                   // Parte con 14 righe
+        rows: 10,                   // Parte con 14 righe
         columns: 8,                 // E 8 colonne
         startDropInterval: 1000,    // Velocità di caduta iniziale
         scoreToComplete: 1000,      // Punti per completare
@@ -13,7 +13,7 @@ const LEVEL_CONFIG = [
     },
     { 
         level: 2, 
-        rows: 15, 
+        rows: 12, 
         columns: 9, 
         startDropInterval: 900, 
         scoreToComplete: 2000,

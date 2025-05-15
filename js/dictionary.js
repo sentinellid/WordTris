@@ -194,7 +194,9 @@ const DictionarySystem = {
                             "MI",
                             "NO",
                             "NE",
-                            "LA"
+                            "LA",
+                            "PO",
+                            "CI"
                             ];
                                     
         SYLS_3_LETTERS = [
@@ -212,7 +214,11 @@ const DictionarySystem = {
                             "POR",
                             "STA",
                             "FOR",
-                            "CEN"
+                            "CEN",
+                            "STA",
+                            "FRA",
+                            "STI",
+                            "STE"
                         ];
         
         console.log("Liste globali sillabe aggiornate con sillabe autentiche italiane");
