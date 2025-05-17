@@ -6,7 +6,7 @@ const LEVEL_CONFIG = [
         columns: 8,                 // E 8 colonne
         startDropInterval: 1000,    // Velocità di caduta iniziale
         scoreToComplete: 1000,      // Punti per completare
-        syls1LetterProb: 0.15,      // Probabilità sillabe da 1 lettera (vocali)
+        syls1LetterProb: 0.05,      // Probabilità sillabe da 1 lettera (vocali)
         syls3LetterProb: 0.15,      // Probabilità sillabe da 3 lettere
         vowelJokerProb: 0.20,       // Probabilità jolly vocale
         consonantJokerProb: 0.10    // Probabilità jolly consonante

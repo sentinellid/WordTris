@@ -359,3 +359,28 @@ const AudioSystem = {
 function playSound(soundType) {
     AudioSystem.playSound(soundType);
 }
+// Aggiungi questo alla fine del file o all'interno dell'oggetto AudioSystem
+
+// Gestione pausa automatica quando la pagina va in background
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // L'app è andata in background
+        if (AudioSystem.backgroundMusicActive&&AudioSystem.backgroundMusic&&!AudioSystem.backgroundMusic.paused) {
+            // Salva lo stato corrente e metti in pausa
+            AudioSystem.backgroundMusic._wasPlaying = true;
+            AudioSystem.stopBackgroundMusic();
+            
+            // Ferma anche il suono hurry-up se attivo
+            if (AudioSystem.hurryUpSound&&!AudioSystem.hurryUpSound.paused) {
+                AudioSystem.stopHurryUp();
+            }
+        }
+    } else {
+        // L'app è tornata in primo piano
+        if (AudioSystem.backgroundMusicActive&&AudioSystem.backgroundMusic&&AudioSystem.backgroundMusic._wasPlaying) {
+            // Riprendi solo se era in riproduzione prima
+            AudioSystem.playBackgroundMusic();
+            AudioSystem.backgroundMusic._wasPlaying = false;
+        }
+    }
+});
