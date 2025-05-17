@@ -903,3 +903,10 @@ and (-webkit-device-pixel-ratio: 2) {
 .iphone-optimized #touch-controls {
     padding: 5px 0;
 }
+#logo-video {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 15px;
+    border-radius: 8px; /* Opzionale: per arrotondare i bordi */
+    box-shadow: 0 0 20px rgba(0, 120, 255, 0.3); /* Opzionale: per aggiungere un effetto glow */
+}

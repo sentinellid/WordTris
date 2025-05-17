@@ -1374,3 +1374,28 @@ window.addEventListener('resize', function() {
         setupGameDimensions();
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const logoVideo = document.getElementById('logo-video');
+    
+    // Precarica il video
+    if (logoVideo) {
+        logoVideo.load();
+        
+        // Assicurati che il video sia visibile e pronto
+        logoVideo.addEventListener('loadeddata', function() {
+            logoVideo.style.opacity = '1';
+        });
+        
+        // Gestisci eventuali errori di caricamento
+        logoVideo.addEventListener('error', function() {
+            console.error('Errore nel caricamento del video logo');
+            // Se il video non può essere caricato, mostra l'immagine fallback
+            const fallbackImg = document.createElement('img');
+            fallbackImg.src = 'img/logo.png';
+            fallbackImg.alt = 'WordTris Logo';
+            fallbackImg.className = 'start-logo';
+            logoVideo.parentNode.replaceChild(fallbackImg, logoVideo);
+        });
+    }
+});

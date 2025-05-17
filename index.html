@@ -9,7 +9,11 @@
 <body>
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
-        <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <video id="logo-video" class="start-logo" autoplay muted loop playsinline>
+            <source src="video/logo-animation.mp4" type="video/mp4">
+            <!-- Fallback per browser che non supportano il video -->
+            <img src="img/logo.png" alt="WordTris Logo">
+        </video>
         <div class="settings-row">
             <button id="toggle-music" class="active">Musica: ON</button>
             
