@@ -1,0 +1,905 @@
+body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; padding-bottom: 80px; }
+
+/* Layout principale a due colonne */
+.game-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 95%;
+    gap: 15px;
+}
+
+/* Colonna principale con la griglia */
+.main-column {
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Colonna laterale per statistiche */
+.stats-column {
+    width: 120px;
+    background: rgba(40, 40, 40, 0.5);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: left;
+    padding: 8px;
+    background: rgba(60, 60, 60, 0.5);
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.stat-item .label {
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.stat-item .val {
+    font-weight: bold;
+    color: #7f7;
+    font-size: 18px;
+}
+
+/* GRIGLIA AUMENTATA DEL 20% */
+#game { 
+    margin: 10px auto 5px; 
+    display: inline-grid; 
+    grid-template-columns: repeat(10, 38px); /* Aumentato da 32px a 38px */
+    grid-auto-rows: 38px; /* Aumentato da 32px a 38px */
+    gap: 2px; 
+    background: #2a2a2a; 
+    padding: 2px; 
+    border: 3px solid #555; 
+    border-radius: 8px; 
+}
+
+.cell { 
+    background: #383838; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font: 600 18px monospace; /* Aumentato da 15px a 18px */
+    overflow: hidden; 
+    user-select: none; 
+    border-radius: 5px; 
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3); 
+    transition: background-color 0.2s ease-out, transform 0.1s ease-out, box-shadow 0.2s ease-out; 
+}
+
+.filled { background: linear-gradient(145deg, #3ab0c0, #2f8a9a); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.4); }
+.joker-cell { background: linear-gradient(145deg, #e04040, #b30000); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(255, 80, 80, 0.6); }
+.consonant-joker-cell { background: linear-gradient(145deg, #9040e0, #6000b3); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.5), 0 0 6px rgba(160, 80, 255, 0.6); }
+.bomb-cell { background: linear-gradient(145deg, #555, #222); color: #ffcc00; font-size: 24px; border: 2px outset #777; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.6), 0 0 10px rgba(255, 165, 0, 0.7); }
+.cell.clearing { animation: cellClearAnimation 0.5s forwards; position: relative; z-index: 100; }
+@keyframes cellClearAnimation { 0% { transform: scale(1.0); opacity: 1; background-color: #ffdd40; box-shadow: 0 0 15px #ffdd40; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0.3); opacity: 0; background-color: transparent; box-shadow: none; } }
+.piece-moved-feedback { outline: 1px solid rgba(255, 255, 0, 0.7); transition: outline 0.05s linear; }
+
+#last-word-display { 
+    margin-top: 10px; 
+    font-size: 15px; 
+    color: #ccc; 
+    min-height: 2.2em; 
+    line-height: 1.2em; 
+    padding: 5px 10px;
+    background: rgba(40, 40, 40, 0.5);
+    border-radius: 6px;
+    width: 90%;
+}
+#last-word-display .val { color: #fa0; }
+
+/* NUOVO STILE: POPUP MODALE PER SELEZIONE */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%;
+    max-width: 350px;
+    background: #222;
+    border-radius: 15px;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    text-align: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translate(-50%, -45%); opacity: 0.5; }
+    to { transform: translate(-50%, -50%); opacity: 1; }
+}
+
+.modal-header {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #eee;
+    font-weight: bold;
+}
+
+.modal-timer {
+    height: 5px;
+    width: 100%;
+    background: #333;
+    border-radius: 3px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.timer-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #2a8, #fa0 40%, #f50 70%, #f00);
+    border-radius: 3px;
+    transition: width linear;
+}
+
+.selection-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.selection-button {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(80, 80, 80, 0.8);
+    color: white;
+    transition: all 0.1s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.vowel-button {
+    background: linear-gradient(145deg, #e04040, #b30000);
+}
+
+.consonant-button {
+    background: linear-gradient(145deg, #9040e0, #6000b3);
+}
+
+.selection-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.selection-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Controllo audio semplificato */
+#audio-controls {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1000;
+}
+#toggle-music {
+    background: rgba(40, 40, 40, 0.8);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+#toggle-music.active {
+    background: rgba(42, 136, 110, 0.8);
+}
+#toggle-music:hover {
+    background: rgba(60, 60, 60, 0.9);
+}
+#toggle-music.active:hover {
+    background: rgba(52, 166, 140, 0.9);
+}
+
+/* Indicatore di feedback audio */
+#sound-indicator { position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s ease; }
+#sound-indicator.active { opacity: 1; }
+
+/* Stato di caricamento audio */
+#audio-loading {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: #ff6;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+#audio-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Stile per l'overlay di avvio */
+#audio-start-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+#audio-start-overlay h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(255,255,255,0.2);
+}
+#audio-start-overlay p {
+    font-size: 16px;
+    max-width: 500px;
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.4;
+    padding: 0 15px;
+}
+
+#audio-start-overlay .start-logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+#start-game-button {
+    padding: 12px 24px;
+    margin: 15px 0;
+    font-size: 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    font-weight: bold;
+    background: linear-gradient(145deg, #3ab0c0, #2a8);
+    color: white;
+}
+
+#start-game-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+#start-game-button:active {
+    transform: translateY(0);
+}
+
+/* Controlli touch ottimizzati */
+#touch-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 5px 0;
+    background: rgba(20, 20, 20, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    z-index: 1000;
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.4);
+}
+
+.touch-button {
+    width: 60px;
+    height: 60px;
+    background: rgba(60, 60, 60, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+    transition: all 0.1s ease;
+}
+
+.touch-button:active {
+    background: rgba(100, 100, 100, 0.9);
+    transform: scale(0.95);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* Pulsante pausa */
+#pause-button {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    background: rgba(60, 60, 60, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: white;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 990;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+#pause-button:hover {
+    background: rgba(80, 80, 80, 0.9);
+}
+
+/* Overlay di pausa */
+#pause-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1500;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    backdrop-filter: blur(3px);
+}
+
+#pause-overlay h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+    color: white;
+}
+
+#resume-button {
+    padding: 12px 30px;
+    background: linear-gradient(145deg, #3ab0c0, #2a8);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+#resume-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+}
+
+#restart-button {
+    padding: 10px 25px;
+    background: rgba(80, 80, 80, 0.7);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+#restart-button:hover {
+    background: rgba(100, 100, 100, 0.8);
+}
+
+/* NUOVO: Overlay di livello completato */
+#level-complete-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1600;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    backdrop-filter: blur(3px);
+    text-align: center;
+}
+
+#level-complete-overlay h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: white;
+    text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+}
+
+#level-complete-overlay .level-stats {
+    color: #ddd;
+    font-size: 18px;
+    margin: 20px 0;
+    line-height: 1.4;
+}
+
+#level-complete-overlay .level-stats .stat-value {
+    color: #7f7;
+    font-weight: bold;
+}
+
+#next-level-button {
+    padding: 12px 30px;
+    background: linear-gradient(145deg, #ffb347, #ffcc33);
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+#next-level-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 200, 0, 0.5);
+}
+
+/* NUOVO: Indicatore di livello */
+#level-indicator {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(50, 50, 50, 0.8);
+    color: #ffcc33;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 100;
+}
+
+/* Progresso obiettivo livello */
+#level-progress-container {
+    width: 90%;
+    height: 8px;
+    background: rgba(40, 40, 40, 0.6);
+    border-radius: 4px;
+    margin: 5px 0 10px;
+    overflow: hidden;
+}
+
+#level-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ffcc33, #ff9933);
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+}
+
+/* Stile per la selezione della lingua */
+.settings-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.language-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(40, 40, 40, 0.8);
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.language-options {
+    display: flex;
+    gap: 2px;
+}
+
+.language-option {
+    background: rgba(60, 60, 60, 0.8);
+    color: #ddd;
+    border: none;
+    width: 32px;
+    height: 28px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.language-option:hover {
+    background: rgba(80, 80, 80, 0.9);
+}
+
+.language-option.active {
+    background: rgba(42, 136, 110, 0.8);
+    color: white;
+    font-weight: bold;
+}
+
+/* Media queries per dispositivi mobili */
+@media (max-width: 768px) {
+    .game-container {
+        flex-direction: column-reverse;
+        align-items: center;
+    }
+    
+    .stats-column {
+        width: 90%;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 8px;
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+    
+    .stat-item {
+        flex: 1;
+        text-align: center;
+        padding: 5px;
+        max-width: 80px;
+    }
+    
+    #game {
+        grid-template-columns: repeat(10, 34px); /* Aumentato da 28px a 34px */
+        grid-auto-rows: 34px; /* Aumentato da 28px a 34px */
+        gap: 1px;
+        margin-top: 5px;
+    }
+    
+    .cell {
+        font-size: 14px; /* Aumentato da 12px a 14px */
+    }
+    
+    .touch-button {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+    }
+    
+    #last-word-display {
+        font-size: 14px;
+        min-height: 2em;
+    }
+    
+    .selection-button {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+    }
+    
+    #pause-button {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding-bottom: 70px;
+    }
+    
+    .game-container {
+        gap: 5px;
+    }
+    
+    .stats-column {
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    .stat-item {
+        padding: 3px;
+        max-width: 70px;
+    }
+    
+    .stat-item .val {
+        font-size: 16px;
+    }
+    
+    #game {
+        grid-template-columns: repeat(10, 29px); /* Aumentato da 24px a 29px */
+        grid-auto-rows: 29px; /* Aumentato da 24px a 29px */
+        margin-top: 3px;
+    }
+    
+    .cell {
+        font-size: 12px; /* Aumentato da 10px a 12px */
+    }
+    
+    .touch-button {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+    
+    #touch-controls {
+        padding: 3px 0;
+    }
+    
+    #toggle-music {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+    
+    .selection-button {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .modal-container {
+        padding: 15px;
+    }
+    
+    .modal-header {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    #pause-button {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}
+
+/* Ulteriori ottimizzazioni per schermi molto piccoli */
+@media (max-width: 360px) {
+    #game {
+        grid-template-columns: repeat(10, 26px); /* Aumentato da 22px a 26px */
+        grid-auto-rows: 26px; /* Aumentato da 22px a 26px */
+    }
+    
+    .cell {
+        font-size: 11px; /* Aumentato da 10px a 11px */
+    }
+    
+    .touch-button {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    #last-word-display {
+        font-size: 12px;
+    }
+    
+    .selection-button {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    #pause-button {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+}
+
+/* Nasconde i controlli touch quando è disponibile un mouse */
+@media (hover: hover) and (pointer: fine) {
+    #touch-controls {
+        display: none;
+    }
+    
+    body {
+        padding-bottom: 20px;
+    }
+}
+
+/* Ottimizzazioni specifiche per dispositivi con schermi molto piccoli */
+@media screen and (max-width: 360px) and (max-height: 640px) {
+    #game {
+        grid-template-columns: repeat(10, 24px);
+        grid-auto-rows: 24px;
+        gap: 1px;
+    }
+    
+    .stats-column {
+        padding: 3px;
+        gap: 3px;
+    }
+    
+    .stat-item {
+        padding: 2px;
+        max-width: 60px;
+    }
+
+    .stat-item .label {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+    
+    .stat-item .val {
+        font-size: 14px;
+    }
+}
+
+/* Media query ultra-specifica per iPhone 8 e dispositivi simili */
+@media screen and (max-width: 375px) and (max-height: 667px) and (-webkit-device-pixel-ratio: 2) {
+    .stats-column {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3px;
+        padding: 4px;
+    }
+    
+    .stat-item {
+        font-size: 90%;
+    }
+}
+
+/* Stili per dispositivi molto piccoli (sotto i 320px) */
+@media (max-width: 320px) {
+    #game {
+        grid-template-columns: repeat(10, 22px);
+        grid-auto-rows: 22px;
+    }
+    
+    .stats-column {
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        flex-basis: 45%;
+        max-width: none;
+        margin-bottom: 3px;
+    }
+
+    #touch-controls {
+        padding: 2px 0;
+        gap: 8px;
+    }
+    
+    .touch-button {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+}
+
+/* Ottimizzazione specifica per iPhone 12 e modelli simili */
+@media only screen 
+and (device-width: 390px) 
+and (device-height: 844px) 
+and (-webkit-device-pixel-ratio: 3),
+/* iPhone 12 Pro */
+only screen 
+and (device-width: 428px) 
+and (device-height: 926px) 
+and (-webkit-device-pixel-ratio: 3),
+/* iPhone 12 Pro Max */
+only screen 
+and (device-width: 375px) 
+and (device-height: 812px) 
+and (-webkit-device-pixel-ratio: 3),
+/* iPhone X/XS */
+only screen 
+and (device-width: 414px) 
+and (device-height: 896px) 
+and (-webkit-device-pixel-ratio: 2) {
+    
+    #game {
+        grid-template-columns: repeat(10, 32px);
+        grid-auto-rows: 32px;
+        gap: 1px;
+    }
+    
+    body {
+        padding-bottom: 80px;
+    }
+    
+    .stats-column {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 5px;
+        gap: 5px;
+        margin-bottom: 5px;
+    }
+    
+    #touch-controls {
+        padding: 3px 0;
+    }
+    
+    .touch-button {
+        width: 55px;
+        height: 55px;
+    }
+}
+
+/* Stili che si attivano SOLO quando JS ha rilevato un dispositivo problematico */
+.small-device-optimized .stat-item {
+    padding: 2px;
+    font-size: 90%;
+}
+
+.small-device-optimized .stat-item .label {
+    font-size: 10px;
+    margin-bottom: 2px;
+}
+
+.small-device-optimized .stat-item .val {
+    font-size: 14px;
+}
+
+/* Stili specifici per Galaxy Watch e dispositivi molto piccoli simili */
+.galaxy-watch-optimized .stats-column {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 2px;
+    gap: 2px;
+}
+
+.galaxy-watch-optimized .stat-item {
+    flex: 0 0 auto;
+    font-size: 80%;
+    padding: 1px;
+}
+
+/* Stili per iPhone recenti */
+.iphone-optimized #game {
+    margin-bottom: 10px;
+}
+
+.iphone-optimized .touch-button {
+    width: 55px;
+    height: 55px;
+    font-size: 22px;
+}
+
+.iphone-optimized #touch-controls {
+    padding: 5px 0;
+}

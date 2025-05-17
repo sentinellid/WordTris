@@ -1,5 +1,3 @@
-// js/audio.js (con l'aggiunta del suono di switch)
-
 // Sistema audio semplificato
 const AudioSystem = {
     audioContext: null,
@@ -17,10 +15,6 @@ const AudioSystem = {
         selectVowel: { freqs: [440, 660], durations: [0.1, 0.1] },
         selectConsonant: { freqs: [550, 330], durations: [0.1, 0.1] },
         word: { freqs: [440, 493, 523, 587], durations: [0.08, 0.08, 0.08, 0.2] },
-        // NUOVO: Suono per lo switch
-        switch: { freqs: [660, 880, 660], durations: [0.08, 0.1, 0.08] },
-        // NUOVO: Suono per errore
-        error: { freqs: [220, 180], durations: [0.1, 0.2] },
         bombExplosion: { 
             custom: true, 
             generate: function(audioContext, gainNode) {

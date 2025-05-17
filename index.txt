@@ -22,7 +22,7 @@
                 </div>
             </div>
         </div>
-        <h2>WordTris ver:0.1a</h2>
+        <h2>WordTris</h2>
         <p id="game-description">Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
         <button id="start-game-button">Inizia</button>
     </div>
