@@ -5,8 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WordTris</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script>
+        // Forza il ricaricamento di tutti i file audio
+        window.addEventListener('load', function() {
+            // Aggiunge un timestamp per aggirare la cache
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(el => {
+                if (el.src) {
+                    const originalSrc = el.src;
+                    el.src = originalSrc.split('?')[0] + '?t=' + new Date().getTime();
+                }
+            });
+        });
+        </script>
 </head>
 <body>
+    
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
         <video id="logo-video" class="start-logo" autoplay muted loop playsinline>
@@ -143,6 +157,10 @@
     <!-- Audio per l'esplosione del tetramino -->
     <audio id="explode-sound" preload="auto">
         <source src="audio/explode.mp3" type="audio/mp3">
+    </audio>
+    
+    <audio id="bomb-sound" preload="auto">
+        <source src="audio/bomb_explosion.mp3" type="audio/mp3">
     </audio>
     
     <!-- NUOVO: Audio per il livello completato -->

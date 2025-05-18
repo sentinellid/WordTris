@@ -9,7 +9,11 @@
 <body>
     <!-- Overlay per l'avvio dell'audio -->
     <div id="audio-start-overlay">
-        <img src="img/logo.png" alt="WordTris Logo" class="start-logo">
+        <video id="logo-video" class="start-logo" autoplay muted loop playsinline>
+            <source src="video/logo-animation.mp4" type="video/mp4">
+            <!-- Fallback per browser che non supportano il video -->
+            <img src="img/logo.png" alt="WordTris Logo">
+        </video>
         <div class="settings-row">
             <button id="toggle-music" class="active">Musica: ON</button>
             
@@ -22,7 +26,7 @@
                 </div>
             </div>
         </div>
-        <h2>WordTris</h2>
+        <h2>WordTris ver:0.1a</h2>
         <p id="game-description">Un gioco di parole ispirato a Tetris. Componi parole italiane usando le sillabe che cadono!</p>
         <button id="start-game-button">Inizia</button>
     </div>
@@ -139,6 +143,10 @@
     <!-- Audio per l'esplosione del tetramino -->
     <audio id="explode-sound" preload="auto">
         <source src="audio/explode.mp3" type="audio/mp3">
+    </audio>
+    
+    <audio id="bomb-sound" preload="auto">
+        <source src="audio/bomb_explosion.mp3" type="audio/mp3">
     </audio>
     
     <!-- NUOVO: Audio per il livello completato -->

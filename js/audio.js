@@ -1,4 +1,4 @@
-// js/audio.js (con l'aggiunta del suono di switch)
+// js/audio.js
 
 // Sistema audio semplificato
 const AudioSystem = {
@@ -6,96 +6,42 @@ const AudioSystem = {
     backgroundMusic: document.getElementById('background-music'),
     hurryUpSound: document.getElementById('hurry-up-sound'),
     explodeSound: document.getElementById('explode-sound'),
+    bombSound: document.getElementById('bomb-sound'),
     levelUpSound: document.getElementById('level-up-sound'),
+    wordSound: document.getElementById('word-sound'),
     sfxGainNode: null,
     backgroundMusicActive: true,
     backgroundMusicLoaded: false,
     
-    // Impostazioni suoni
+    // Impostazioni suoni per la sintesi
     sounds: {
-        drop: { freqs: [220, 165], durations: [0.05, 0.1] },
-        selectVowel: { freqs: [440, 660], durations: [0.1, 0.1] },
-        selectConsonant: { freqs: [550, 330], durations: [0.1, 0.1] },
-        word: { freqs: [440, 493, 523, 587], durations: [0.08, 0.08, 0.08, 0.2] },
-        // NUOVO: Suono per lo switch
-        switch: { freqs: [660, 880, 660], durations: [0.08, 0.1, 0.08] },
-        // NUOVO: Suono per errore
-        error: { freqs: [220, 180], durations: [0.1, 0.2] },
-        bombExplosion: { 
-            custom: true, 
-            generate: function(audioContext, gainNode) {
-                const duration = 1.2;
-                const now = audioContext.currentTime;
-                
-                // Suono 1: Boom basso
-                const boom = audioContext.createOscillator();
-                const boomGain = audioContext.createGain();
-                boom.type = 'sawtooth';
-                boom.frequency.setValueAtTime(120, now);
-                boom.frequency.exponentialRampToValueAtTime(30, now + 0.8);
-                boomGain.gain.setValueAtTime(0.01, now);
-                boomGain.gain.exponentialRampToValueAtTime(0.7, now + 0.05);
-                boomGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                boom.connect(boomGain);
-                boomGain.connect(gainNode);
-                boom.start(now);
-                boom.stop(now + duration);
-                
-                // Suono 2: Rumore esplosione
-                const bufferSize = audioContext.sampleRate * 1.5;
-                const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                
-                // Generazione del rumore bianco
-                for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
-                }
-                
-                // Suono "scoppio"
-                const noise = audioContext.createBufferSource();
-                const noiseGain = audioContext.createGain();
-                const noiseFilter = audioContext.createBiquadFilter();
-                
-                noise.buffer = noiseBuffer;
-                noiseFilter.type = 'lowpass';
-                noiseFilter.frequency.setValueAtTime(8000, now);
-                noiseFilter.frequency.exponentialRampToValueAtTime(800, now + 0.6);
-                noiseGain.gain.setValueAtTime(0.01, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.25, now + 0.05);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                
-                noise.connect(noiseFilter);
-                noiseFilter.connect(noiseGain);
-                noiseGain.connect(gainNode);
-                
-                noise.start(now);
-                noise.stop(now + duration);
-                
-                // Suono 3: Riverbero post-esplosione
-                setTimeout(() => {
-                    const reverb = audioContext.createOscillator();
-                    const reverbGain = audioContext.createGain();
-                    const reverbFilter = audioContext.createBiquadFilter();
-                    
-                    reverb.type = 'sine';
-                    reverb.frequency.setValueAtTime(400, now + 0.1);
-                    reverb.frequency.exponentialRampToValueAtTime(100, now + 1.0);
-                    
-                    reverbFilter.type = 'bandpass';
-                    reverbFilter.frequency.value = 200;
-                    reverbFilter.Q.value = 3;
-                    
-                    reverbGain.gain.setValueAtTime(0.05, now + 0.1);
-                    reverbGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                    
-                    reverb.connect(reverbFilter);
-                    reverbFilter.connect(reverbGain);
-                    reverbGain.connect(gainNode);
-                    
-                    reverb.start(now + 0.1);
-                    reverb.stop(now + duration);
-                }, 100);
-            }
+        word: {
+            freqs: [440, 523.25, 659.25],
+            durations: [0.1, 0.1, 0.2]
+        },
+        move: {
+            freqs: [300, 350],
+            durations: [0.05, 0.05]
+        },
+        rotate: {
+            freqs: [350, 400],
+            durations: [0.05, 0.05]
+        },
+        drop: {
+            freqs: [300, 250, 200],
+            durations: [0.05, 0.05, 0.1]
+        },
+        lock: {
+            freqs: [400, 300],
+            durations: [0.05, 0.1]
+        },
+        clear: {
+            freqs: [440, 494, 523, 587, 659, 698, 784],
+            durations: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.2]
+        },
+        gameOver: {
+            freqs: [400, 350, 300, 250, 200, 150, 100],
+            durations: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.3]
         }
     },
     
@@ -271,6 +217,55 @@ const AudioSystem = {
         }
     },
     
+    playBomb() {
+        if (!this.bombSound) {
+            console.error("Elemento audio per il suono della bomba non trovato");
+            return;
+        }
+        
+        try {
+            // Resetta il suono se stava già suonando
+            this.bombSound.pause();
+            this.bombSound.currentTime = 0;
+            
+            // Imposta volume al 70%
+            this.bombSound.volume = 0.7;
+            
+            // Riproduci il suono
+            const playPromise = this.bombSound.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Errore riproduzione suono della bomba:", error);
+                });
+            }
+        } catch (e) {
+            console.error("Errore riproduzione bomba:", e);
+        }
+    },
+    
+    playWord() {
+        if (this.wordSound) {
+            try {
+                // Resetta e riproduci il file audio
+                this.wordSound.pause();
+                this.wordSound.currentTime = 0;
+                this.wordSound.volume = 0.7;
+                this.wordSound.play().catch(error => {
+                    console.warn("Errore riproduzione suono word:", error);
+                    // Fallback sulla sintesi
+                    this.playSynthSound('word');
+                });
+            } catch (e) {
+                console.error("Errore riproduzione word:", e);
+                this.playSynthSound('word');
+            }
+        } else {
+            // Usa la sintesi se il file audio non è disponibile
+            this.playSynthSound('word');
+        }
+    },
+    
     playLevelUp() {
         if (!this.levelUpSound) {
             console.error("Elemento audio per il suono level-up non trovato");
@@ -326,7 +321,7 @@ const AudioSystem = {
                 const oscillator = this.audioContext.createOscillator();
                 const gainNode = this.audioContext.createGain();
                 
-                oscillator.type = type === 'bombExplosion' ? 'sawtooth' : 'sine';
+                oscillator.type = 'sine';
                 oscillator.frequency.value = soundData.freqs[i];
                 
                 gainNode.gain.setValueAtTime(0.001, startTime);
@@ -347,10 +342,13 @@ const AudioSystem = {
     },
     
     playSound(type) {
-        // Assicurati che AudioContext sia pronto
-        if (!this.audioContext) this.initialize();
+        // Caso speciale per parola trovata
+        if (type === 'word') {
+            this.playWord();
+            return;
+        }
         
-        // Riproduci il suono sintetizzato
+        // Per tutti gli altri suoni
         this.playSynthSound(type);
     }
 };
@@ -359,7 +357,6 @@ const AudioSystem = {
 function playSound(soundType) {
     AudioSystem.playSound(soundType);
 }
-// Aggiungi questo alla fine del file o all'interno dell'oggetto AudioSystem
 
 // Gestione pausa automatica quando la pagina va in background
 document.addEventListener('visibilitychange', function() {

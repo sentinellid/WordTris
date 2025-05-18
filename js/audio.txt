@@ -1,9 +1,12 @@
+// js/audio.js (con l'aggiunta del suono di switch)
+
 // Sistema audio semplificato
 const AudioSystem = {
     audioContext: null,
     backgroundMusic: document.getElementById('background-music'),
     hurryUpSound: document.getElementById('hurry-up-sound'),
     explodeSound: document.getElementById('explode-sound'),
+    bombSound: document.getElementById('bomb-sound'),
     levelUpSound: document.getElementById('level-up-sound'),
     sfxGainNode: null,
     backgroundMusicActive: true,
@@ -11,86 +14,11 @@ const AudioSystem = {
     
     // Impostazioni suoni
     sounds: {
-        drop: { freqs: [220, 165], durations: [0.05, 0.1] },
-        selectVowel: { freqs: [440, 660], durations: [0.1, 0.1] },
-        selectConsonant: { freqs: [550, 330], durations: [0.1, 0.1] },
-        word: { freqs: [440, 493, 523, 587], durations: [0.08, 0.08, 0.08, 0.2] },
-        bombExplosion: { 
-            custom: true, 
-            generate: function(audioContext, gainNode) {
-                const duration = 1.2;
-                const now = audioContext.currentTime;
-                
-                // Suono 1: Boom basso
-                const boom = audioContext.createOscillator();
-                const boomGain = audioContext.createGain();
-                boom.type = 'sawtooth';
-                boom.frequency.setValueAtTime(120, now);
-                boom.frequency.exponentialRampToValueAtTime(30, now + 0.8);
-                boomGain.gain.setValueAtTime(0.01, now);
-                boomGain.gain.exponentialRampToValueAtTime(0.7, now + 0.05);
-                boomGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                boom.connect(boomGain);
-                boomGain.connect(gainNode);
-                boom.start(now);
-                boom.stop(now + duration);
-                
-                // Suono 2: Rumore esplosione
-                const bufferSize = audioContext.sampleRate * 1.5;
-                const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                
-                // Generazione del rumore bianco
-                for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
-                }
-                
-                // Suono "scoppio"
-                const noise = audioContext.createBufferSource();
-                const noiseGain = audioContext.createGain();
-                const noiseFilter = audioContext.createBiquadFilter();
-                
-                noise.buffer = noiseBuffer;
-                noiseFilter.type = 'lowpass';
-                noiseFilter.frequency.setValueAtTime(8000, now);
-                noiseFilter.frequency.exponentialRampToValueAtTime(800, now + 0.6);
-                noiseGain.gain.setValueAtTime(0.01, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.25, now + 0.05);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                
-                noise.connect(noiseFilter);
-                noiseFilter.connect(noiseGain);
-                noiseGain.connect(gainNode);
-                
-                noise.start(now);
-                noise.stop(now + duration);
-                
-                // Suono 3: Riverbero post-esplosione
-                setTimeout(() => {
-                    const reverb = audioContext.createOscillator();
-                    const reverbGain = audioContext.createGain();
-                    const reverbFilter = audioContext.createBiquadFilter();
-                    
-                    reverb.type = 'sine';
-                    reverb.frequency.setValueAtTime(400, now + 0.1);
-                    reverb.frequency.exponentialRampToValueAtTime(100, now + 1.0);
-                    
-                    reverbFilter.type = 'bandpass';
-                    reverbFilter.frequency.value = 200;
-                    reverbFilter.Q.value = 3;
-                    
-                    reverbGain.gain.setValueAtTime(0.05, now + 0.1);
-                    reverbGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                    
-                    reverb.connect(reverbFilter);
-                    reverbFilter.connect(reverbGain);
-                    reverbGain.connect(gainNode);
-                    
-                    reverb.start(now + 0.1);
-                    reverb.stop(now + duration);
-                }, 100);
-            }
-        }
+ 
+        bombExplosion: {
+            url: 'audio/bomb_explosion.mp3',  // Assicurati che questo sia il nome esatto del tuo file
+            volume: 0.8  // Puoi regolare il volume come preferisci
+        }   
     },
     
     initialize() {
@@ -265,6 +193,33 @@ const AudioSystem = {
         }
     },
     
+    playBomb() {
+        if (!this.bombExplosion) {
+            console.error("Elemento audio per il suono explode non trovato");
+            return;
+        }
+        
+        try {
+            // Resetta il suono se stava già suonando
+            this.bombExplosion.pause();
+            this.bombExplosion.currentTime = 0;
+            
+            // Imposta volume al 70%
+            this.bombExplosion.volume = 0.7;
+            
+            // Riproduci il suono
+            const playPromise = this.bombExplosion.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Errore riproduzione suono explode:", error);
+                });
+            }
+        } catch (e) {
+            console.error("Errore riproduzione explode:", e);
+        }
+    },
+    
     playLevelUp() {
         if (!this.levelUpSound) {
             console.error("Elemento audio per il suono level-up non trovato");
@@ -353,3 +308,28 @@ const AudioSystem = {
 function playSound(soundType) {
     AudioSystem.playSound(soundType);
 }
+// Aggiungi questo alla fine del file o all'interno dell'oggetto AudioSystem
+
+// Gestione pausa automatica quando la pagina va in background
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // L'app è andata in background
+        if (AudioSystem.backgroundMusicActive&&AudioSystem.backgroundMusic&&!AudioSystem.backgroundMusic.paused) {
+            // Salva lo stato corrente e metti in pausa
+            AudioSystem.backgroundMusic._wasPlaying = true;
+            AudioSystem.stopBackgroundMusic();
+            
+            // Ferma anche il suono hurry-up se attivo
+            if (AudioSystem.hurryUpSound&&!AudioSystem.hurryUpSound.paused) {
+                AudioSystem.stopHurryUp();
+            }
+        }
+    } else {
+        // L'app è tornata in primo piano
+        if (AudioSystem.backgroundMusicActive&&AudioSystem.backgroundMusic&&AudioSystem.backgroundMusic._wasPlaying) {
+            // Riprendi solo se era in riproduzione prima
+            AudioSystem.playBackgroundMusic();
+            AudioSystem.backgroundMusic._wasPlaying = false;
+        }
+    }
+});

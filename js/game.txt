@@ -6,7 +6,7 @@ const LEVEL_CONFIG = [
         columns: 8,                 // E 8 colonne
         startDropInterval: 1000,    // Velocità di caduta iniziale
         scoreToComplete: 1000,      // Punti per completare
-        syls1LetterProb: 0.15,      // Probabilità sillabe da 1 lettera (vocali)
+        syls1LetterProb: 0.05,      // Probabilità sillabe da 1 lettera (vocali)
         syls3LetterProb: 0.15,      // Probabilità sillabe da 3 lettere
         vowelJokerProb: 0.20,       // Probabilità jolly vocale
         consonantJokerProb: 0.10    // Probabilità jolly consonante
@@ -335,7 +335,7 @@ function lockCurrentPiece() {
         }
         if (landingRow >= ROWS) landingRow = ROWS -1; 
         
-        playSound('bombExplosion');
+        AudioSystem.playBomb();
         
         detonateBomb(landingRow, cur.power, cur.x); 
         cur = null;
@@ -1372,5 +1372,30 @@ window.addEventListener('resize', function() {
     if (!document.getElementById('audio-start-overlay').style.display === 'none') {
         applyDeviceSpecificOptimizations();
         setupGameDimensions();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const logoVideo = document.getElementById('logo-video');
+    
+    // Precarica il video
+    if (logoVideo) {
+        logoVideo.load();
+        
+        // Assicurati che il video sia visibile e pronto
+        logoVideo.addEventListener('loadeddata', function() {
+            logoVideo.style.opacity = '1';
+        });
+        
+        // Gestisci eventuali errori di caricamento
+        logoVideo.addEventListener('error', function() {
+            console.error('Errore nel caricamento del video logo');
+            // Se il video non può essere caricato, mostra l'immagine fallback
+            const fallbackImg = document.createElement('img');
+            fallbackImg.src = 'img/logo.png';
+            fallbackImg.alt = 'WordTris Logo';
+            fallbackImg.className = 'start-logo';
+            logoVideo.parentNode.replaceChild(fallbackImg, logoVideo);
+        });
     }
 });

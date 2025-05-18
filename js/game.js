@@ -335,8 +335,6 @@ function lockCurrentPiece() {
         }
         if (landingRow >= ROWS) landingRow = ROWS -1; 
         
-        playSound('bombExplosion');
-        
         detonateBomb(landingRow, cur.power, cur.x); 
         cur = null;
         processBoardAfterLock(); 
@@ -432,6 +430,10 @@ function stopTimers() {
 
 function detonateBomb(bombHitRow, numRowsToClear, bombCol) {
     if (numRowsToClear <= 0) return;
+    
+    // Riproduci il suono della bomba
+    AudioSystem.playBomb();
+    
     let actualRowsCleared = 0;
     for (let i = 0; i < numRowsToClear; i++) {
         const rowToClear = bombHitRow - i; 
@@ -758,6 +760,7 @@ function processRunForWords(run, fixedCoord, isHorizontal) {
                 }
                 
                 if(cellsAreValid) {
+                    // Riproduci il suono quando trovi una parola
                     playSound('word');
                     
                     isAnimatingClear = true; clearInterval(gameLoopTimer);
@@ -766,6 +769,8 @@ function processRunForWords(run, fixedCoord, isHorizontal) {
                     
                     const numberOfSyllablesInGrid = subRun.length;
                     let bombaAttivataQuestoTurno = false;
+                    
+                    // RIPRISTINATO: Bomba solo per parole di 3+ sillabe
                     if (numberOfSyllablesInGrid >= 3&&!isNextPieceBomb) { 
                         isNextPieceBomb = true;
                         bombPower = numberOfSyllablesInGrid - 2;
