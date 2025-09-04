@@ -1,0 +1,1 @@
+python -m http.server 5500 -d "D:\Projects\WordTris"

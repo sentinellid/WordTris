@@ -120,7 +120,7 @@ const DictionarySystem = {
             const dict = this.dictionaries[language];
             
             // Carica il dizionario normale
-            const filename = language === 'ita' ? 'dizionario.txt' : `dictionary_${language}.txt`;
+            const filename = `dictionary_${language}.txt`;
             const response = await fetch(`data/${filename}`);
             
             if (!response.ok) {
