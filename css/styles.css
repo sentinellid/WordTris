@@ -1053,3 +1053,13 @@ const additionalCSS = `
     opacity: 0.7 !important;
     transition: all 0.3s ease;
 }
+@keyframes bomb-pulse {
+    from { 
+        background-color: #ff4444; 
+        box-shadow: 0 0 5px #ff0000; 
+    }
+    to { 
+        background-color: #ff6666; 
+        box-shadow: 0 0 15px #ff0000; 
+    }
+}

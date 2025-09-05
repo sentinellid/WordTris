@@ -301,21 +301,24 @@ function newPiece() {
     if (isNextPieceBomb) {
         isNextPieceBomb = false; 
         pieces++; ui.p.textContent = pieces;
-        return { x: COLS >> 1, y: -1, h: 1, txt: ["ðŸ'£"], isBomb: true, power: bombPower };
+        // CORREZIONE: Usa l'emoji corretta della bomba
+        return { x: COLS >> 1, y: -1, h: 1, txt: ["💣"], isBomb: true, power: bombPower };
     }
-    const r = Math.random(), h_normal = r < .3 ? 1 : r < .75 ? 2 : 3; const txt = [];
-    while(txt.length < h_normal) { const s = randSyl(); if (!txt.includes(s)) txt.push(s); }
+    const r = Math.random(), h_normal = r < .3 ? 1 : r < .75 ? 2 : 3; 
+    const txt = [];
+    while(txt.length < h_normal) { 
+        const s = randSyl(); 
+        if (!txt.includes(s)) txt.push(s); 
+    }
     pieces++; ui.p.textContent = pieces;
     
     if (txt.length > 0) {
         const sylIndexToMakeJoker = txt.length - 1; 
         const originalSyl = txt[sylIndexToMakeJoker];
         
-        // Verifica se rendere un jolly di vocale
         if (/[AEIOU]$/.test(originalSyl)&&originalSyl.length > 1&&Math.random() < VOWEL_CHOICE_PROBABILITY) { 
             txt[sylIndexToMakeJoker] = originalSyl.slice(0, -1) + "*";
         }
-        // Verifica se rendere un jolly di consonante (solo per vocali singole)
         else if (VOWELS.includes(originalSyl)&&Math.random() < CONSONANT_CHOICE_PROBABILITY) {
             txt[sylIndexToMakeJoker] = "*" + originalSyl;
         }
@@ -337,54 +340,66 @@ function lockCurrentPiece() {
     if (!dizionarioPronto || isAnimatingClear) return;
     clearInterval(gameLoopTimer); 
 
-    playSound('drop');
+    if (typeof playSound === 'function') {
+        playSound('drop');
+    }
 
-    if (cur.isBomb) {
-        let landingRow = cur.y + cur.h - 1; 
-        for(let i = cur.h -1; i >= 0; i--){ 
-            if(cur.y + i >= ROWS -1 || (cur.y + i + 1 < ROWS&&board[cur.y + i + 1]&&board[cur.y + i + 1][cur.x])) { 
-                landingRow = cur.y + i; break;
-            }
-        }
-        if (landingRow >= ROWS) landingRow = ROWS -1; 
+    if (cur && cur.isBomb) {
+        console.log("Locking bomb piece at position:", cur.x, cur.y);
+        
+        // Trova la riga dove atterrerà effettivamente la bomba
+        let landingRow = cur.y;
+        
+        // La bomba ha altezza 1, quindi atterrerà a cur.y
+        // Ma dobbiamo verificare che non sia sotto il livello del terreno
+        if (landingRow < 0) landingRow = 0;
+        if (landingRow >= ROWS) landingRow = ROWS - 1;
+        
+        console.log("Bomb will detonate at row:", landingRow, "with power:", cur.power);
         
         detonateBomb(landingRow, cur.power, cur.x); 
         cur = null;
-        processBoardAfterLock(); 
+        
+        // Dopo la detonazione, continua con il processing normale
+        setTimeout(() => {
+            if (!gameIsOver) {
+                processBoardAfterLock(); 
+            }
+        }, 100);
         return; 
     }
 
+    // Resto del codice per pezzi normali...
     let needsVowelChoice = false;
     let needsConsonantChoice = false;
     choiceCellInfo = null;
     
-    for (let i = 0; i < cur.h; i++) {
-        const r_lock = cur.y + i, c_lock = cur.x;
-        if (r_lock < 0) { draw(); handleGameOver(); return; }
-        board[r_lock][c_lock] = cur.txt[i];
-    }
-    
-    for (let i = 0; i < cur.h; i++) {
-        const r_check = cur.y + i, c_check = cur.x;
-        if (r_check >= 0) {
-            const cellContent = cur.txt[i];
-            
-            // Controlla i jolly di vocale (con * alla fine, es: "T*")
-            if (cellContent.endsWith("*")) {
-                needsVowelChoice = true;
-                isVowelChoice = true;
-                choiceCellInfo = { r: r_check, c: c_check, prefix: cellContent.slice(0, -1) };
-                break;
-            }
-            // Controlla i jolly di consonante (con * all'inizio, es: "*A")
-            else if (cellContent.startsWith("*")&&cellContent.length > 1) {
-                needsConsonantChoice = true;
-                isVowelChoice = false;
-                choiceCellInfo = { r: r_check, c: c_check, suffix: cellContent.slice(1) };
+    if (cur) {
+        for (let i = 0; i < cur.h; i++) {
+            const r_lock = cur.y + i, c_lock = cur.x;
+            if (r_lock < 0) { draw(); handleGameOver(); return; }
+            board[r_lock][c_lock] = cur.txt[i];
+        }
+        
+        for (let i = 0; i < cur.h; i++) {
+            const r_check = cur.y + i, c_check = cur.x;
+            if (r_check >= 0) {
+                const cellContent = cur.txt[i];
                 
-                // Prepara le consonanti disponibili per la selezione
-                setupConsonantSelection();
-                break;
+                if (cellContent.endsWith("*")) {
+                    needsVowelChoice = true;
+                    isVowelChoice = true;
+                    choiceCellInfo = { r: r_check, c: c_check, prefix: cellContent.slice(0, -1) };
+                    break;
+                }
+                else if (cellContent.startsWith("*")&&cellContent.length > 1) {
+                    needsConsonantChoice = true;
+                    isVowelChoice = false;
+                    choiceCellInfo = { r: r_check, c: c_check, suffix: cellContent.slice(1) };
+                    
+                    setupConsonantSelection();
+                    break;
+                }
             }
         }
     }
@@ -393,18 +408,18 @@ function lockCurrentPiece() {
     draw(); 
     
     if (needsVowelChoice || needsConsonantChoice) {
-        AudioSystem.playHurryUp();
+        if (typeof AudioSystem !== 'undefined' && AudioSystem.playHurryUp) {
+            AudioSystem.playHurryUp();
+        }
         isHurryUpPlaying = true;
         
         isChoiceActive = true;
         
         if (needsVowelChoice) {
-            // Mostra il modal delle vocali
             ui.vowelModal.style.display = "block";
             startTimer(true);
             document.addEventListener('keydown', handleVowelKeyboardChoice);
         } else {
-            // Mostra il modal delle consonanti
             ui.consonantModal.style.display = "block";
             startTimer(false);
             document.addEventListener('keydown', handleConsonantKeyboardChoice);
@@ -442,21 +457,54 @@ function stopTimers() {
 }
 
 function detonateBomb(bombHitRow, numRowsToClear, bombCol) {
+    console.log(`Bomb detonating at row ${bombHitRow}, column ${bombCol}, power ${numRowsToClear}`);
+    
     if (numRowsToClear <= 0) return;
     
     // Riproduci il suono della bomba
-    AudioSystem.playBomb();
+    if (typeof AudioSystem !== 'undefined' && AudioSystem.playBomb) {
+        AudioSystem.playBomb();
+    }
     
     let actualRowsCleared = 0;
+    let totalCellsCleared = 0;
+    
+    // Pulisci le righe partendo da quella dove è atterrata la bomba
     for (let i = 0; i < numRowsToClear; i++) {
         const rowToClear = bombHitRow - i; 
-        if (rowToClear >= 0&&rowToClear < ROWS) {
-            for (let c = 0; c < COLS; c++) board[rowToClear][c] = null; 
-            actualRowsCleared++; score += 50 * (i + 1); 
-        } else break; 
+        if (rowToClear >= 0 && rowToClear < ROWS) {
+            // Conta le celle piene prima di pulirle
+            let cellsInThisRow = 0;
+            for (let c = 0; c < COLS; c++) {
+                if (board[rowToClear][c] && board[rowToClear][c] !== 'CLEARING_PLACEHOLDER') {
+                    cellsInThisRow++;
+                }
+                board[rowToClear][c] = null; 
+            }
+            totalCellsCleared += cellsInThisRow;
+            actualRowsCleared++; 
+            
+            // Punteggio progressivo per ogni riga (la prima riga dà più punti)
+            const rowScore = 50 * (numRowsToClear - i + 1);
+            score += rowScore;
+            
+            console.log(`Cleared row ${rowToClear}: ${cellsInThisRow} cells, ${rowScore} points`);
+        } else {
+            break; 
+        }
     }
-    // Aggiorna l'UI e verifica avanzamento livello
+    
+    // Bonus per il numero totale di celle distrutte
+    const bonusScore = totalCellsCleared * 10;
+    score += bonusScore;
+    
+    console.log(`Bomb cleared ${actualRowsCleared} rows, ${totalCellsCleared} cells, total points: ${50 * actualRowsCleared + bonusScore}`);
+    
+    // Aggiorna l'UI
     updateScore();
+    
+    // Messaggio di feedback
+    ui.lastWordVal.innerHTML = `<span style="color:orange;font-weight:bold;">💥 ESPLOSIONE! ${actualRowsCleared} righe distrutte!</span>`;
 }
 
 function handleVowelKeyboardChoice(e) {
@@ -833,9 +881,13 @@ function draw() {
             const cellElement = $(idx(c, r));
             if (cellElement) {
                 const s_board = board[r][c];
-                if (s_board === 'CLEARING_PLACEHOLDER') { if(!cellElement.classList.contains('clearing')) {} continue; }
+                if (s_board === 'CLEARING_PLACEHOLDER') { 
+                    if(!cellElement.classList.contains('clearing')) {} 
+                    continue; 
+                }
                 cellElement.textContent = s_board || "";
                 if (s_board) {
+                    // CORREZIONE: Verifica corretta per la bomba
                     if (s_board === "💣") { 
                         cellElement.className = "cell bomb-cell";
                     } else if (s_board.endsWith("*")) {
@@ -851,6 +903,7 @@ function draw() {
             }
         }
     }
+    
     if (cur&&!gameIsOver&&!isAnimatingClear) {
         cur.txt.forEach((s_cur, i) => {
             const r_cur = cur.y + i;
@@ -1460,11 +1513,21 @@ const PowerUpSystem = {
     },
     
     activateBomb() {
-        isNextPieceBomb = true;
-        bombPower = 3;
-        ui.lastWordVal.innerHTML = '<span style="color:orange;font-weight:bold;">BOMBA POWER-UP ATTIVATA!</span>';
+        // Sostituisci il pezzo corrente con una bomba
+        cur = { 
+            x: COLS >> 1, 
+            y: -1, 
+            h: 1, 
+            txt: ["💣"], 
+            isBomb: true, 
+            power: 3 
+        };
+        
+        ui.lastWordVal.innerHTML = '<span style="color:orange;font-weight:bold;">💣 BOMBA LANCIATA!</span>';
+        
+        // Riprendi il gioco così la bomba cade
+        PowerUpFreezeSystem.unfreezeCurrentPiece();
     },
-    
     activateSwap() {
         if (this.activeStates.swap) return;
         
