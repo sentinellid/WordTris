@@ -1052,6 +1052,8 @@ const additionalCSS = `
     color: #999 !important;
     opacity: 0.7 !important;
     transition: all 0.3s ease;
+    position: static !important;
+    transform: none !important;
 }
 @keyframes bomb-pulse {
     from { 

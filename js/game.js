@@ -758,7 +758,74 @@ function startNextLevel() {
     gamePaused = false;
     gameLoopTimer = setInterval(gameStep, currentDropInterval);
 }
-
+function clearCurrentPieceWithAnimation() {
+    if (!cur) return Promise.resolve();
+    
+    return new Promise((resolve) => {
+        // Ferma il game loop
+        clearInterval(gameLoopTimer);
+        
+        // Applica l'effetto clearing alle celle del pezzo corrente
+        const pieceCells = [];
+        for (let i = 0; i < cur.h; i++) {
+            const r_cur = cur.y + i;
+            if (r_cur >= 0 && r_cur < ROWS) {
+                const cellElement = $(idx(cur.x, r_cur));
+                if (cellElement && (!board[r_cur] || !board[r_cur][cur.x] || board[r_cur][cur.x] === 'CLEARING_PLACEHOLDER')) {
+                    cellElement.classList.add('clearing');
+                    pieceCells.push({ element: cellElement, row: r_cur, col: cur.x });
+                }
+            }
+        }
+        
+        // Riproduci suono di clearing
+        if (typeof playSound === 'function') {
+            playSound('word');
+        }
+        
+        // Dopo l'animazione, rimuovi gli effetti e elimina il pezzo
+        setTimeout(() => {
+            pieceCells.forEach(cell => {
+                cell.element.classList.remove('clearing');
+                cell.element.textContent = '';
+                cell.element.className = 'cell';
+            });
+            
+            // Elimina il pezzo corrente
+            cur = null;
+            draw();
+            resolve();
+        }, ANIMATION_CLEAR_DURATION);
+    });
+}
+function createNewPieceAfterPowerup() {
+    if (gameIsOver || gamePaused) return;
+    
+    // Crea un nuovo pezzo
+    cur = newPiece();
+    
+    // Verifica che possa essere posizionato
+    if (!canMove(cur, 0, 0)) {
+        draw();
+        handleGameOver();
+        return;
+    }
+    
+    // Aggiorna l'intervallo di caduta
+    if (cur.isBomb) {
+        currentDropInterval = Math.floor(START_DROP / 3);
+    } else {
+        currentDropInterval = START_DROP;
+    }
+    
+    draw();
+    
+    // Riprendi il game loop se non siamo in animazione
+    if (!isAnimatingClear && !isChoiceActive) {
+        clearInterval(gameLoopTimer);
+        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+    }
+}
 // Funzione per ricreare la griglia di gioco
 function recreateGameGrid() {
     // Svuota il contenitore
@@ -1484,22 +1551,55 @@ const PowerUpSystem = {
         });
     },
     
+    // SOSTITUISCI completamente il metodo activatePowerUp nel tuo PowerUpSystem con questo:
+
     activatePowerUp(powerupType) {
         if (!this.canAfford(powerupType)) {
             playSound('drop');
-            // NUOVO: Ripristina il focus anche in caso di errore
             setTimeout(() => restoreGameFocus(), 100);
             return false;
+        }
+        
+        // PRE-POWERUP: Rimuovi il pezzo corrente con animazione clearing
+        if (cur) {
+            clearInterval(gameLoopTimer);
+            
+            // Applica effetto clearing alle celle del pezzo corrente
+            for (let i = 0; i < cur.h; i++) {
+                const r_cur = cur.y + i;
+                if (r_cur >= 0 && r_cur < ROWS) {
+                    const cellElement = $(idx(cur.x, r_cur));
+                    if (cellElement && (!board[r_cur] || !board[r_cur][cur.x] || board[r_cur][cur.x] === 'CLEARING_PLACEHOLDER')) {
+                        cellElement.classList.add('clearing');
+                    }
+                }
+            }
+            
+            // Dopo l'animazione, pulisci e elimina il pezzo
+            setTimeout(() => {
+                if (cur) {
+                    for (let i = 0; i < cur.h; i++) {
+                        const r_cur = cur.y + i;
+                        if (r_cur >= 0 && r_cur < ROWS) {
+                            const cellElement = $(idx(cur.x, r_cur));
+                            if (cellElement) {
+                                cellElement.classList.remove('clearing');
+                                cellElement.textContent = '';
+                                cellElement.className = 'cell';
+                            }
+                        }
+                    }
+                }
+                cur = null;
+                draw();
+            }, ANIMATION_CLEAR_DURATION);
         }
         
         // Pausa il gioco normale
         if (gameLoopTimer) {
             clearInterval(gameLoopTimer);
         }
-    
-        // NUOVO: Freeza solo il pezzo corrente che sta cadendo
-        PowerUpFreezeSystem.freezeCurrentPiece();
-    
+
         score -= this.costs[powerupType];
         ui.s.textContent = score;
         
@@ -1511,9 +1611,30 @@ const PowerUpSystem = {
             setTimeout(() => button.classList.remove('powerup-activated'), 500);
         }
         
+        // ESEGUI IL POWERUP SPECIFICO
         switch(powerupType) {
             case 'bomb':
-                this.activateBomb();
+                // Per la bomba, crea subito il pezzo bomba e fallo cadere
+                setTimeout(() => {
+                    cur = { 
+                        x: COLS >> 1, 
+                        y: -1, 
+                        h: 1, 
+                        txt: ["💣"], 
+                        isBomb: true, 
+                        power: 3 
+                    };
+                    
+                    ui.lastWordVal.innerHTML = '<span style="color:orange;font-weight:bold;">💣 BOMBA LANCIATA!</span>';
+                    
+                    currentDropInterval = Math.floor(START_DROP / 3);
+                    draw();
+                    
+                    if (!gameIsOver && !isAnimatingClear && !gamePaused) {
+                        clearInterval(gameLoopTimer);
+                        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+                    }
+                }, ANIMATION_CLEAR_DURATION + 50);
                 break;
             case 'swap':
                 this.activateSwap();
@@ -1529,14 +1650,12 @@ const PowerUpSystem = {
         this.updateButtonStates();
 
         setTimeout(() => {
-            // Non ripristinare il focus se siamo in modalità scambio (dove serve il click)
             if (powerupType !== 'swap' || !this.activeStates.swap) {
                 restoreGameFocus();
             }
         }, 200);
         return true;
     },
-    
     activateBomb() {
         // Sostituisci il pezzo corrente con una bomba
         cur = { 
@@ -1725,6 +1844,9 @@ const PowerUpSystem = {
         this.cannonPosition = Math.floor(COLS / 2);
         this.spaceInvadersLasers = [];
         
+        // NUOVO: Rimuovi l'effetto freeze dalle celle prima di iniziare
+        PowerUpFreezeSystem.unfreezeBoard();
+        
         ui.lastWordVal.innerHTML = '<span style="color:lime;font-weight:bold;">🚀 SPACE INVADERS! Frecce ←→ per muoversi, SPAZIO/↓ per sparare</span>';
         
         // Crea l'elemento grafico dell'astronave
@@ -1752,7 +1874,7 @@ const PowerUpSystem = {
                 this.deactivateSpaceInvaders();
             }
         }, 5000);
-    },    
+    },
     createSpaceShip() {
         // Rimuovi astronave esistente se presente
         if (this.spaceInvadersElement) {
@@ -1763,7 +1885,7 @@ const PowerUpSystem = {
         // Crea l'elemento dell'astronave
         this.spaceInvadersElement = document.createElement('div');
         this.spaceInvadersElement.className = 'space-invaders-ship';
-        this.spaceInvadersElement.innerHTML = '🚀';
+        this.spaceInvadersElement.innerHTML = '▼';
         
         // Posiziona l'astronave sopra la griglia
         const gameElement = document.getElementById('game');
@@ -1790,13 +1912,16 @@ const PowerUpSystem = {
         
         // Calcolo semplice e diretto
         const cellWidth = 38;
-        const leftPosition = this.cannonPosition * cellWidth + (cellWidth / 2) - 12;
+        const leftPosition = this.cannonPosition * cellWidth + (cellWidth / 2) - 8;
         
+        // CORREZIONE: Assicurati che solo l'astronave si muova, non le celle
         this.spaceInvadersElement.style.left = `${leftPosition}px`;
+        this.spaceInvadersElement.style.position = 'absolute';
+        this.spaceInvadersElement.style.zIndex = '1000';
         
         // Debug
         console.log(`Ship at column ${this.cannonPosition}, pixel position: ${leftPosition}px`);
-    },    
+    },
     setupSpaceInvadersTouchControls() {
         // Salva i controlli originali
         this.originalTouchControls = {
