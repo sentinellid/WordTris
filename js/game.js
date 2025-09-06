@@ -214,9 +214,13 @@ function restoreGameFocus() {
         document.activeElement.blur();
     }
     
-    // Opzionalmente, può focalizzare sulla griglia di gioco
+    // Focalizza sulla griglia di gioco
     const gameElement = document.getElementById('game');
     if (gameElement) {
+        // Rende la griglia focusable se non lo è già
+        if (!gameElement.hasAttribute('tabindex')) {
+            gameElement.setAttribute('tabindex', '0');
+        }
         gameElement.focus();
     }
 }
@@ -354,6 +358,8 @@ function lockCurrentPiece() {
         // Ma dobbiamo verificare che non sia sotto il livello del terreno
         if (landingRow < 0) landingRow = 0;
         if (landingRow >= ROWS) landingRow = ROWS - 1;
+        
+        cur.power = 1;
         
         console.log("Bomb will detonate at row:", landingRow, "with power:", cur.power);
         
@@ -629,21 +635,31 @@ function processBoardAfterLock() {
         if (!wordFoundThisScanPass) stabilityReached = true; 
     } 
     
-    if (!isAnimatingClear&&!gameIsOver) {
+    if (!isAnimatingClear && !gameIsOver) {
         // Aggiorna l'UI e verifica avanzamento livello
         updateScore();
         
-        cur = newPiece(); 
-        
-        if (cur.isBomb) { 
-            currentDropInterval = Math.floor(START_DROP / 3);
-        } else { 
-            currentDropInterval = START_DROP;
+        // CORREZIONE: Se non c'è un pezzo corrente (per esempio dopo uno scambio), creane uno
+        if (!cur) {
+            cur = newPiece(); 
+            
+            if (cur.isBomb) { 
+                currentDropInterval = Math.floor(START_DROP / 3);
+            } else { 
+                currentDropInterval = START_DROP;
+            }
+    
+            if (!canMove(cur, 0, 0)) { 
+                draw(); 
+                handleGameOver(); 
+                return; 
+            }
         }
-
-        if (!canMove(cur, 0, 0)) { draw(); handleGameOver(); return; }
+        
         draw();
-        if (!gameIsOver&&!gamePaused) {
+        
+        // CORREZIONE: Riprendi sempre il game loop se il gioco non è in pausa
+        if (!gameIsOver && !gamePaused && !isChoiceActive) {
             clearInterval(gameLoopTimer); 
             gameLoopTimer = setInterval(gameStep, currentDropInterval); 
         }
@@ -1471,6 +1487,8 @@ const PowerUpSystem = {
     activatePowerUp(powerupType) {
         if (!this.canAfford(powerupType)) {
             playSound('drop');
+            // NUOVO: Ripristina il focus anche in caso di errore
+            setTimeout(() => restoreGameFocus(), 100);
             return false;
         }
         
@@ -1509,6 +1527,13 @@ const PowerUpSystem = {
         }
         
         this.updateButtonStates();
+
+        setTimeout(() => {
+            // Non ripristinare il focus se siamo in modalità scambio (dove serve il click)
+            if (powerupType !== 'swap' || !this.activeStates.swap) {
+                restoreGameFocus();
+            }
+        }, 200);
         return true;
     },
     
@@ -1527,15 +1552,34 @@ const PowerUpSystem = {
         
         // Riprendi il gioco così la bomba cade
         PowerUpFreezeSystem.unfreezeCurrentPiece();
+
+        restoreGameFocus();
     },
     activateSwap() {
         if (this.activeStates.swap) return;
+        
+        // NUOVO: Conta le celle piene sulla griglia
+        let filledCellsCount = 0;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (board[r] && board[r][c] && board[r][c] !== 'CLEARING_PLACEHOLDER') {
+                    filledCellsCount++;
+                }
+            }
+        }
+        
+        // Se ci sono meno di 2 celle piene, non attivare lo scambio
+        if (filledCellsCount < 2) {
+            ui.lastWordVal.innerHTML = '<span style="color:red;">Servono almeno 2 sillabe sulla griglia per usare lo Scambio!</span>';
+            playSound('drop'); // Suono di errore
+            return;
+        }
         
         this.activeStates.swap = true;
         ui.lastWordVal.innerHTML = '<span style="color:cyan;font-weight:bold;">SCAMBIO ATTIVO! Clicca due celle adiacenti.</span>';
         
         document.getElementById('game').classList.add('swap-mode');
-
+    
         // Salva la funzione bindata una sola volta
         if (!this.boundHandleSwapClick) {
             this.boundHandleSwapClick = this.handleSwapClick.bind(this);
@@ -1546,10 +1590,32 @@ const PowerUpSystem = {
             if (this.activeStates.swap) {
                 this.deactivateSwap();
                 ui.lastWordVal.innerHTML = '<span style="color:red;">Modalità scambio scaduta.</span>';
+                // NUOVO: Riprendi il gioco dopo il timeout
+                this.resumeGameAfterSwap();
             }
-        }, 10000);
-    },
-    
+        }, 5000);
+    },    
+    resumeGameAfterSwap() {
+        // NUOVO: Assicurati che il gioco riprenda correttamente
+        if (!gameIsOver && !isAnimatingClear && !gamePaused) {
+            // Se non c'è un pezzo corrente, creane uno nuovo
+            if (!cur) {
+                cur = newPiece();
+                if (!canMove(cur, 0, 0)) {
+                    draw();
+                    handleGameOver();
+                    return;
+                }
+            }
+            
+            // Riprendi il game loop
+            clearInterval(gameLoopTimer);
+            gameLoopTimer = setInterval(gameStep, currentDropInterval);
+            
+            draw();
+            console.log('Game resumed after swap operation');
+        }
+    },   
     handleSwapClick(event) {
         if (!this.activeStates.swap) return;
         
@@ -1561,7 +1627,12 @@ const PowerUpSystem = {
         const row = Math.floor(cellIndex / COLS);
         const col = cellIndex % COLS;
         
-        if (!board[row] || !board[row][col] || board[row][col] === 'CLEARING_PLACEHOLDER') {
+        // CORREZIONE: Verifica più rigorosa delle celle valide
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS || 
+            !board[row] || !board[row][col] || 
+            board[row][col] === 'CLEARING_PLACEHOLDER') {
+            
+            ui.lastWordVal.innerHTML = '<span style="color:red;">Seleziona una cella con contenuto!</span>';
             return;
         }
         
@@ -1578,6 +1649,7 @@ const PowerUpSystem = {
             const isAdjacent = !isSameCell && rowDiff <= 1 && colDiff <= 1;
             
             if (isAdjacent) {
+                // Esegui lo scambio
                 const temp = board[first.row][first.col];
                 board[first.row][first.col] = board[row][col];
                 board[row][col] = temp;
@@ -1585,21 +1657,25 @@ const PowerUpSystem = {
                 ui.lastWordVal.innerHTML = '<span style="color:lime;">Scambio completato!</span>';
                 draw();
                 
+                // CORREZIONE: Disattiva lo scambio PRIMA di processare il board
+                this.deactivateSwap();
+                
+                // Dai un momento per vedere il risultato, poi processa
                 setTimeout(() => {
                     processBoardAfterLock();
                 }, 500);
             } else {
                 ui.lastWordVal.innerHTML = '<span style="color:red;">Le celle devono essere adiacenti!</span>';
+                // Reset selezione per permettere una nuova scelta
+                first.cell.classList.remove('swap-selected');
+                this.swapSelection = [];
             }
-            
-            this.deactivateSwap();
         }
     },
-
     deactivateSwap() {
         this.activeStates.swap = false;
         document.getElementById('game').classList.remove('swap-mode');
-
+    
         if (this.boundHandleSwapClick) {
             document.removeEventListener('click', this.boundHandleSwapClick);
         }
@@ -1608,6 +1684,9 @@ const PowerUpSystem = {
             cell.classList.remove('swap-selected');
         });
         this.swapSelection = [];
+        
+        // NUOVO: Assicurati sempre che PowerUpFreezeSystem venga sbloccato
+        PowerUpFreezeSystem.unfreezeCurrentPiece();
     },
     handleSpaceInvadersKeyboard(event) {
         // CORREZIONE: Verifica lo stato prima di processare l'evento
