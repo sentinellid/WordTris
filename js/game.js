@@ -1517,20 +1517,18 @@ const PowerUpSystem = {
         bomb: 0,
         swap: 0,
         spaceinvaders: 0,
-        breakout: 0
+        shuffle: 0
     },
     
     activeStates: {
         swap: false,
         spaceinvaders: false,
-        breakout: false
+        shuffle: false
     },
     
     swapSelection: [],
     cannonPosition: 0,
-    breakoutBall: { row: 0, col: 0, dirRow: 1, dirCol: 1 },
     paddlePosition: 0,
-    breakoutInterval: null,
     
     // NUOVO: Variabili per Space Invaders migliorato
     spaceInvadersShip: null,
@@ -1642,8 +1640,8 @@ const PowerUpSystem = {
             case 'spaceinvaders':
                 this.activateSpaceInvaders();
                 break;
-            case 'breakout':
-                this.activateBreakout();
+            case 'shuffle':
+                this.activateShuffle();
                 break;
         }
         
@@ -1691,6 +1689,36 @@ const PowerUpSystem = {
         if (filledCellsCount < 2) {
             ui.lastWordVal.innerHTML = '<span style="color:red;">Servono almeno 2 sillabe sulla griglia per usare lo Scambio!</span>';
             playSound('drop'); // Suono di errore
+            setTimeout(() => {
+                if (!gameIsOver && !cur) {
+                    cur = newPiece();
+                    
+                    // Verifica che il pezzo possa essere posizionato
+                    if (!canMove(cur, 0, 0)) {
+                        draw();
+                        handleGameOver();
+                        return;
+                    }
+                    
+                    // Imposta l'intervallo di caduta corretto
+                    if (cur.isBomb) {
+                        currentDropInterval = Math.floor(START_DROP / 3);
+                    } else {
+                        currentDropInterval = START_DROP;
+                    }
+                    
+                    draw();
+                    
+                    // Riprendi il game loop
+                    if (!isAnimatingClear && !isChoiceActive && !gamePaused) {
+                        clearInterval(gameLoopTimer);
+                        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+                    }
+                    
+                    restoreGameFocus();
+                }
+            }, ANIMATION_CLEAR_DURATION + 100);
+
             return;
         }
         
@@ -1844,6 +1872,52 @@ const PowerUpSystem = {
         this.cannonPosition = Math.floor(COLS / 2);
         this.spaceInvadersLasers = [];
         
+        let filledCellsCount = 0;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (board[r] && board[r][c] && board[r][c] !== 'CLEARING_PLACEHOLDER') {
+                    filledCellsCount++;
+                }
+            }
+        }
+        
+        // Se ci sono meno di 2 celle piene, non attivare lo scambio
+        if (filledCellsCount < 1) {
+            ui.lastWordVal.innerHTML = '<span style="color:red;">Servono almeno 1 sillabe sulla griglia per usare lo Space invaders!</span>';
+            playSound('drop'); // Suono di errore
+            setTimeout(() => {
+                if (!gameIsOver && !cur) {
+                    cur = newPiece();
+                    
+                    // Verifica che il pezzo possa essere posizionato
+                    if (!canMove(cur, 0, 0)) {
+                        draw();
+                        handleGameOver();
+                        return;
+                    }
+                    
+                    // Imposta l'intervallo di caduta corretto
+                    if (cur.isBomb) {
+                        currentDropInterval = Math.floor(START_DROP / 3);
+                    } else {
+                        currentDropInterval = START_DROP;
+                    }
+                    
+                    draw();
+                    
+                    // Riprendi il game loop
+                    if (!isAnimatingClear && !isChoiceActive && !gamePaused) {
+                        clearInterval(gameLoopTimer);
+                        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+                    }
+                    
+                    restoreGameFocus();
+                }
+            }, ANIMATION_CLEAR_DURATION + 100);
+
+            return;
+        }
+
         // NUOVO: Rimuovi l'effetto freeze dalle celle prima di iniziare
         PowerUpFreezeSystem.unfreezeBoard();
         
@@ -2041,55 +2115,162 @@ const PowerUpSystem = {
                 board[boardRow] && board[boardRow][laser.col] && 
                 board[boardRow][laser.col] !== 'CLEARING_PLACEHOLDER') {
                 
+                // CORREZIONE: Crea prima gli effetti visivi, poi pulisci la cella
+                this.createExplosionEffect(laser.col, boardRow);
+                
+                // Rimuovi la sillaba dalla griglia
                 board[boardRow][laser.col] = null;
+                
+                // Aggiungi punti
                 score += 25;
                 ui.s.textContent = score;
                 
-                this.createExplosionEffect(laser.col, boardRow);
+                // Aggiorna immediatamente la visualizzazione della cella
+                const cellElement = $(idx(laser.col, boardRow));
+                if (cellElement) {
+                    cellElement.textContent = "";
+                    cellElement.className = "cell";
+                }
                 
-                laser.element.remove();
-                return false;
+                // Rimuovi il laser
+                if (laser.element && laser.element.parentNode) {
+                    laser.element.remove();
+                }
+                
+                return false; // Rimuovi questo laser dall'array
             }
             
+            // Se il laser esce dalla griglia dal basso
             if (laser.row >= ROWS + 1) {
-                laser.element.remove();
+                if (laser.element && laser.element.parentNode) {
+                    laser.element.remove();
+                }
                 return false;
             }
             
-            return true;
+            return true; // Mantieni questo laser
         });
         
+        // Ridisegna la griglia per assicurarsi che tutto sia aggiornato
         draw();
+        
+        // Fai collassare le sillabe dopo che i laser hanno fatto il loro effetto
         collapse();
+        
+        // Ridisegna di nuovo dopo il collapse
         draw();
     },
-    createExplosionEffect(col, row) {
-        const explosion = document.createElement('div');
-        explosion.innerHTML = '💥';
-        explosion.style.cssText = `
-            position: absolute;
-            font-size: 20px;
-            z-index: 1001;
-            pointer-events: none;
-            animation: explosion 0.5s ease-out forwards;
-        `;
-        
+    createExplosionParticles(col, row) {
+        const gameElement = document.getElementById('game');
         const cellWidth = 38;
         const cellHeight = 38;
-        const leftPosition = col * cellWidth + 9;
-        const topPosition = row * cellHeight + 9;
         
-        explosion.style.left = `${leftPosition}px`;
-        explosion.style.top = `${topPosition}px`;
+        // Crea 6 particelle che si irradiano dal centro
+        const particles = ['✨', '⭐', '💫', '✨', '⭐', '💫'];
+        const angles = [0, 60, 120, 180, 240, 300]; // Angoli in gradi
+        
+        particles.forEach((particle, index) => {
+            const particleElement = document.createElement('div');
+            particleElement.innerHTML = particle;
+            particleElement.className = 'explosion-particle';
+            
+            const centerX = col * cellWidth + (cellWidth / 2);
+            const centerY = row * cellHeight + (cellHeight / 2);
+            
+            const angle = angles[index] * (Math.PI / 180); // Converti in radianti
+            const distance = 40; // Distanza di movimento della particella
+            
+            const finalX = centerX + Math.cos(angle) * distance;
+            const finalY = centerY + Math.sin(angle) * distance;
+            
+            particleElement.style.cssText = `
+                position: absolute;
+                font-size: 12px;
+                z-index: 1000;
+                left: ${centerX}px;
+                top: ${centerY}px;
+                pointer-events: none;
+                animation: particle-burst-${index} 0.8s ease-out forwards;
+                opacity: 1;
+            `;
+            
+            gameElement.appendChild(particleElement);
+            
+            // Crea animazione dinamica per ogni particella
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes particle-burst-${index} {
+                    0% {
+                        transform: translate(0, 0) scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: translate(${finalX - centerX}px, ${finalY - centerY}px) scale(1.2);
+                        opacity: 0.8;
+                    }
+                    100% {
+                        transform: translate(${finalX - centerX}px, ${finalY - centerY}px) scale(0.5);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Rimuovi particella e stile dopo l'animazione
+            setTimeout(() => {
+                if (particleElement && particleElement.parentNode) {
+                    particleElement.remove();
+                }
+                if (style && style.parentNode) {
+                    style.remove();
+                }
+            }, 800);
+        });
+    },
+    createExplosionEffect(col, row) {
+        // Crea l'elemento esplosione
+        const explosion = document.createElement('div');
+        explosion.innerHTML = '💥';
+        explosion.className = 'space-invaders-explosion';
+        
+        // Calcolo corretto della posizione centrata
+        const cellWidth = 38;
+        const cellHeight = 38;
+        const explosionSize = 24; // Dimensione del simbolo esplosione
+        
+        // Centra l'esplosione nella cella target
+        const leftPosition = col * cellWidth + (cellWidth / 2) - (explosionSize / 2);
+        const topPosition = row * cellHeight + (cellHeight / 2) - (explosionSize / 2);
+        
+        explosion.style.cssText = `
+            position: absolute;
+            font-size: 24px;
+            z-index: 1001;
+            left: ${leftPosition}px;
+            top: ${topPosition}px;
+            pointer-events: none;
+            animation: space-explosion 0.6s ease-out forwards;
+            text-shadow: 0 0 10px #ff6600, 0 0 20px #ff3300;
+        `;
         
         const gameElement = document.getElementById('game');
         gameElement.appendChild(explosion);
         
+        // Crea effetto di particelle aggiuntive
+        this.createExplosionParticles(col, row);
+        
+        // Suono esplosione più appropriato
+        if (typeof playSound === 'function') {
+            playSound('word'); // o crea un suono specifico per l'esplosione
+        }
+        
+        // Rimuovi dopo l'animazione
         setTimeout(() => {
-            explosion.remove();
-        }, 500);
-    },
-    
+            if (explosion && explosion.parentNode) {
+                explosion.remove();
+            }
+        }, 600);
+    }, 
     restoreTouchControls() {
         const touchLeft = document.getElementById('touch-left');
         const touchRight = document.getElementById('touch-right');
@@ -2157,142 +2338,165 @@ const PowerUpSystem = {
         
         draw();
     },
-    // Il resto dei metodi rimane invariato...
-    activateBreakout() {
-        if (this.activeStates.breakout) return;
+    activateShuffle() {
+        if (this.activeStates.shuffle) return;
         
-        this.activeStates.breakout = true;
+        // Conta le sillabe presenti sulla griglia
+        const filledCells = [];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (board[r] && board[r][c] && 
+                    board[r][c] !== 'CLEARING_PLACEHOLDER' && 
+                    !board[r][c].endsWith("*") && 
+                    !board[r][c].startsWith("*")) {
+                    filledCells.push({
+                        row: r,
+                        col: c,
+                        content: board[r][c]
+                    });
+                }
+            }
+        }
         
-        this.breakoutBall.row = 1;
-        this.breakoutBall.col = Math.floor(COLS / 2);
-        this.breakoutBall.dirRow = 1;
-        this.breakoutBall.dirCol = Math.random() > 0.5 ? 1 : -1;
-        this.paddlePosition = Math.floor(COLS / 2);
+        // Se ci sono meno di 3 sillabe, non ha senso mescolare
+        if (filledCells.length < 3) {
+            ui.lastWordVal.innerHTML = '<span style="color:red;">Servono almeno 3 sillabe sulla griglia per usare la Mischia!</span>';
+            playSound('drop');
+            
+            // CORREZIONE COMPLETA: Il powerup fallisce, quindi dobbiamo creare un nuovo pezzo
+            // e riprendere il gioco come se il powerup non fosse mai stato attivato
+            
+            // Crea un nuovo pezzo immediatamente
+            setTimeout(() => {
+                if (!gameIsOver && !cur) {
+                    cur = newPiece();
+                    
+                    // Verifica che il pezzo possa essere posizionato
+                    if (!canMove(cur, 0, 0)) {
+                        draw();
+                        handleGameOver();
+                        return;
+                    }
+                    
+                    // Imposta l'intervallo di caduta corretto
+                    if (cur.isBomb) {
+                        currentDropInterval = Math.floor(START_DROP / 3);
+                    } else {
+                        currentDropInterval = START_DROP;
+                    }
+                    
+                    draw();
+                    
+                    // Riprendi il game loop
+                    if (!isAnimatingClear && !isChoiceActive && !gamePaused) {
+                        clearInterval(gameLoopTimer);
+                        gameLoopTimer = setInterval(gameStep, currentDropInterval);
+                    }
+                    
+                    restoreGameFocus();
+                }
+            }, ANIMATION_CLEAR_DURATION + 100);
+            
+            return;
+        }
         
-        ui.lastWordVal.innerHTML = '<span style="color:yellow;font-weight:bold;">BREAKOUT! Usa A/D per muovere la racchetta.</span>';
+        this.activeStates.shuffle = true;
         
-        document.addEventListener('keydown', this.handleBreakoutControls.bind(this));
+        // Applica effetto visivo di "congelamento" alle celle che verranno mescolate
+        filledCells.forEach(cell => {
+            const cellElement = $(idx(cell.col, cell.row));
+            if (cellElement) {
+                cellElement.classList.add('shuffle-preparing');
+            }
+        });
         
-        this.breakoutInterval = setInterval(() => {
-            this.updateBreakoutBall();
-        }, 300);
+        ui.lastWordVal.innerHTML = '<span style="color:purple;font-weight:bold;">🔀 MISCHIA ATTIVATA! Preparazione...</span>';
         
-        this.updateBreakoutDisplay();
-        
+        // Dopo un breve delay per l'effetto visivo, esegui la mischia
         setTimeout(() => {
-            this.deactivateBreakout();
-        }, 20000);
+            this.executeShuffleAnimation(filledCells);
+        }, 800);
     },
     
-    handleBreakoutControls(event) {
-        if (!this.activeStates.breakout) return;
+    // 3. Funzione che esegue l'animazione e la logica della mischia
+    executeShuffleAnimation(filledCells) {
+        // Estrae tutti i contenuti delle celle
+        const contents = filledCells.map(cell => cell.content);
         
-        switch(event.code) {
-            case 'KeyA':
-                if (this.paddlePosition > 0) {
-                    this.paddlePosition--;
-                    this.updateBreakoutDisplay();
-                }
-                event.preventDefault();
-                break;
-            case 'KeyD':
-                if (this.paddlePosition < COLS - 1) {
-                    this.paddlePosition++;
-                    this.updateBreakoutDisplay();
-                }
-                event.preventDefault();
-                break;
+        // Mischia l'array dei contenuti usando Fisher-Yates shuffle
+        for (let i = contents.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [contents[i], contents[j]] = [contents[j], contents[i]];
         }
-    },
-    
-    updateBreakoutBall() {
-        if (!this.activeStates.breakout) return;
         
-        const newRow = this.breakoutBall.row + this.breakoutBall.dirRow;
-        const newCol = this.breakoutBall.col + this.breakoutBall.dirCol;
-        
-        if (newRow <= 0) {
-            this.breakoutBall.dirRow = 1;
-        }
-        if (newRow >= ROWS - 2) {
-            if (Math.abs(newCol - this.paddlePosition) <= 1) {
-                this.breakoutBall.dirRow = -1;
-                this.breakoutBall.dirCol = newCol < this.paddlePosition ? -1 : 1;
-            } else {
-                this.deactivateBreakout();
-                return;
+        // Applica l'animazione di "shuffle" a tutte le celle interessate
+        filledCells.forEach(cell => {
+            const cellElement = $(idx(cell.col, cell.row));
+            if (cellElement) {
+                cellElement.classList.remove('shuffle-preparing');
+                cellElement.classList.add('shuffle-active');
+                
+                // Durante l'animazione, mostra un simbolo di shuffle
+                cellElement.textContent = '🔀';
             }
-        }
-        if (newCol <= 0 || newCol >= COLS - 1) {
-            this.breakoutBall.dirCol = -this.breakoutBall.dirCol;
-        }
+        });
         
-        if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS &&
-            board[newRow] && board[newRow][newCol] && board[newRow][newCol] !== 'CLEARING_PLACEHOLDER') {
-            
-            board[newRow][newCol] = null;
+        ui.lastWordVal.innerHTML = '<span style="color:purple;font-weight:bold;">🔀 MISCHIANDO...</span>';
+        
+        // Suono di shuffle
+        if (typeof playSound === 'function') {
             playSound('word');
-            score += 30;
-            ui.s.textContent = score;
+        }
+        
+        // Dopo l'animazione, applica i nuovi valori
+        setTimeout(() => {
+            // Assegna i contenuti mescolati alle posizioni originali
+            filledCells.forEach((cell, index) => {
+                board[cell.row][cell.col] = contents[index];
+                
+                const cellElement = $(idx(cell.col, cell.row));
+                if (cellElement) {
+                    cellElement.classList.remove('shuffle-active');
+                    cellElement.textContent = contents[index];
+                    
+                    // Breve effetto "pop" per evidenziare il cambiamento
+                    cellElement.classList.add('shuffle-complete');
+                    setTimeout(() => {
+                        cellElement.classList.remove('shuffle-complete');
+                    }, 300);
+                }
+            });
             
-            this.breakoutBall.dirRow = -this.breakoutBall.dirRow;
+            ui.lastWordVal.innerHTML = '<span style="color:lime;">🔀 Mischia completata!</span>';
             
+            // Ridisegna la griglia per assicurarsi che tutto sia corretto
             draw();
-            collapse();
-        } else {
-            this.breakoutBall.row = Math.max(0, Math.min(ROWS - 1, newRow));
-            this.breakoutBall.col = Math.max(0, Math.min(COLS - 1, newCol));
-        }
-        
-        this.updateBreakoutDisplay();
+            
+            // Dopo la mischia, processa il board per eventuali nuove parole formate
+            setTimeout(() => {
+                this.deactivateShuffle();
+                
+                // Processa il board per cercare nuove combinazioni di parole
+                processBoardAfterLock();
+            }, 500);
+            
+        }, 1000); // Durata dell'animazione di shuffle
     },
     
-    updateBreakoutDisplay() {
-        if (!this.activeStates.breakout) return;
+    // 4. Funzione per deattivare il powerup shuffle
+    deactivateShuffle() {
+        this.activeStates.shuffle = false;
         
-        document.querySelectorAll('.breakout-ball, .breakout-paddle').forEach(cell => {
-            cell.classList.remove('breakout-ball', 'breakout-paddle');
-            if (cell.textContent === '🔴' || cell.textContent === '▬') {
-                cell.textContent = '';
-            }
+        // Rimuovi eventuali classi CSS rimaste
+        document.querySelectorAll('.shuffle-preparing, .shuffle-active, .shuffle-complete').forEach(element => {
+            element.classList.remove('shuffle-preparing', 'shuffle-active', 'shuffle-complete');
         });
         
-        const ballCellIndex = this.breakoutBall.row * COLS + this.breakoutBall.col;
-        const ballCell = $(ballCellIndex);
-        if (ballCell) {
-            ballCell.classList.add('breakout-ball');
-            if (!board[this.breakoutBall.row][this.breakoutBall.col]) {
-                ballCell.textContent = '🔴';
-            }
+        // Riprendi il gioco normale se non ci sono altri powerup attivi
+        if (!gameIsOver && !isAnimatingClear && !gamePaused && cur && !isChoiceActive) {
+            clearInterval(gameLoopTimer);
+            gameLoopTimer = setInterval(gameStep, currentDropInterval);
         }
-        
-        const paddleCellIndex = (ROWS - 1) * COLS + this.paddlePosition;
-        const paddleCell = $(paddleCellIndex);
-        if (paddleCell && !board[ROWS - 1][this.paddlePosition]) {
-            paddleCell.classList.add('breakout-paddle');
-            paddleCell.textContent = '▬';
-        }
-    },
-    
-    deactivateBreakout() {
-        this.activeStates.breakout = false;
-        
-        if (this.breakoutInterval) {
-            clearInterval(this.breakoutInterval);
-            this.breakoutInterval = null;
-        }
-        
-        document.removeEventListener('keydown', this.handleBreakoutControls.bind(this));
-        
-        document.querySelectorAll('.breakout-ball, .breakout-paddle').forEach(cell => {
-            cell.classList.remove('breakout-ball', 'breakout-paddle');
-            if (cell.textContent === '🔴' || cell.textContent === '▬') {
-                cell.textContent = '';
-            }
-        });
-        
-        ui.lastWordVal.innerHTML = '<span style="color:gray;">Breakout disattivato.</span>';
-        draw();
     }
 };
 const PowerUpFreezeSystem = {
@@ -2501,6 +2705,6 @@ document.getElementById('spaceinvaders-powerup').addEventListener('click', () =>
     PowerUpSystem.activatePowerUp('spaceinvaders');
 });
 
-document.getElementById('breakout-powerup').addEventListener('click', () => {
-    PowerUpSystem.activatePowerUp('breakout');
+document.getElementById('shuffle-powerup').addEventListener('click', () => {
+    PowerUpSystem.activatePowerUp('shuffle');
 });

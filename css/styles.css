@@ -1065,3 +1065,140 @@ const additionalCSS = `
         box-shadow: 0 0 15px #ff0000; 
     }
 }
+.space-invaders-explosion {
+    font-weight: bold;
+    color: #ff3300;
+    text-shadow: 0 0 10px #ff6600, 0 0 20px #ff3300;
+}
+
+@keyframes space-explosion {
+    0% {
+        transform: scale(0.5) rotate(0deg);
+        opacity: 1;
+        text-shadow: 0 0 5px #ff6600, 0 0 10px #ff3300;
+    }
+    25% {
+        transform: scale(1.5) rotate(90deg);
+        opacity: 1;
+        text-shadow: 0 0 15px #ff6600, 0 0 25px #ff3300, 0 0 35px #ffaa00;
+    }
+    50% {
+        transform: scale(2) rotate(180deg);
+        opacity: 0.9;
+        text-shadow: 0 0 20px #ff6600, 0 0 30px #ff3300, 0 0 40px #ffaa00;
+    }
+    75% {
+        transform: scale(1.8) rotate(270deg);
+        opacity: 0.6;
+        text-shadow: 0 0 15px #ff6600, 0 0 25px #ff3300;
+    }
+    100% {
+        transform: scale(0.8) rotate(360deg);
+        opacity: 0;
+        text-shadow: 0 0 5px #ff6600;
+    }
+}
+
+/* Stili per le particelle esplosive */
+.explosion-particle {
+    font-weight: bold;
+    color: #ffdd00;
+    text-shadow: 0 0 5px #ffaa00, 0 0 10px #ff6600;
+}
+
+/* Animazione per l'astronave Space Invaders */
+.space-invaders-ship {
+    font-size: 24px;
+    color: #00ff00;
+    text-shadow: 0 0 10px #00ff00, 0 0 20px #00aa00;
+    filter: drop-shadow(0 0 8px #00ff00);
+}
+
+/* Laser di Space Invaders con effetto glow migliorato */
+.space-invaders-laser {
+    background: linear-gradient(to bottom, 
+        rgba(0, 255, 0, 1), 
+        rgba(0, 255, 0, 0.8), 
+        rgba(255, 255, 255, 0.9),
+        rgba(0, 255, 0, 0.8), 
+        rgba(0, 255, 0, 1)
+    );
+    box-shadow: 
+        0 0 6px #00ff00,
+        0 0 12px #00ff00,
+        inset 0 0 2px #ffffff;
+    animation: laser-pulse 0.1s ease-in-out infinite alternate;
+}
+
+@keyframes laser-pulse {
+    0% {
+        box-shadow: 
+            0 0 4px #00ff00,
+            0 0 8px #00ff00;
+        opacity: 1;
+    }
+    100% {
+        box-shadow: 
+            0 0 8px #00ff00,
+            0 0 16px #00ff00,
+            0 0 24px #00aa00;
+        opacity: 0.9;
+    }
+}
+
+/* Effetti per l'impatto del laser */
+.laser-impact {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff, #00ff00, transparent);
+    animation: laser-impact 0.3s ease-out forwards;
+    z-index: 1002;
+}
+
+@keyframes laser-impact {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(3);
+        opacity: 0;
+    }
+}
+
+/* Ottimizzazioni per dispositivi mobili */
+@media (max-width: 480px) {
+    .space-invaders-explosion {
+        font-size: 20px;
+    }
+    
+    .space-invaders-ship {
+        font-size: 20px;
+    }
+    
+    .explosion-particle {
+        font-size: 10px;
+    }
+    
+    @keyframes space-explosion {
+        50% {
+            transform: scale(1.5) rotate(180deg);
+        }
+    }
+}
+
+/* Assicura che gli effetti siano sempre visibili sopra tutto */
+.space-invaders-explosion,
+.explosion-particle,
+.space-invaders-ship,
+.space-invaders-laser {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
