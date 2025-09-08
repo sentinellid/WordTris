@@ -4,110 +4,140 @@ const LEVEL_CONFIG = [
         rows: 10,                   // Parte con 14 righe
         columns: 8,                 // E 8 colonne
         startDropInterval: 1000,    // VelocitÃ  di caduta iniziale
-        scoreToComplete: 1000,      // Punti per completare
+        scoreToComplete: 5000,      // Punti per completare
         syls1LetterProb: 0.05,      // ProbabilitÃ  sillabe da 1 lettera (vocali)
         syls3LetterProb: 0.15,      // ProbabilitÃ  sillabe da 3 lettere
         vowelJokerProb: 0.20,       // ProbabilitÃ  jolly vocale
-        consonantJokerProb: 0.10    // ProbabilitÃ  jolly consonante
+        consonantJokerProb: 0.10,    // ProbabilitÃ  jolly consonante
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music1.mp3",
+        background: "img/background1.jpg"
     },
     { 
         level: 2, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 900, 
-        scoreToComplete: 2000,
+        scoreToComplete: 7000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.18,
         vowelJokerProb: 0.25,
-        consonantJokerProb: 0.15
+        consonantJokerProb: 0.15,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music2.mp3",
+        background: "img/background2.jpg"
     },
     { 
         level: 3, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 800, 
-        scoreToComplete: 3000,
+        scoreToComplete: 10000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.20,
         vowelJokerProb: 0.25,
-        consonantJokerProb: 0.15
+        consonantJokerProb: 0.15,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music3.mp3",
+        background: "img/background3.jpg"
     },
     { 
         level: 4, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 750, 
-        scoreToComplete: 4000,
+        scoreToComplete: 12000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.20,
         vowelJokerProb: 0.30,
-        consonantJokerProb: 0.20
+        consonantJokerProb: 0.20,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music4.mp3",
+        background: "img/background4.jpg"
     },
     { 
         level: 5, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 700, 
-        scoreToComplete: 5000,
+        scoreToComplete: 15000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.25,
         vowelJokerProb: 0.30,
-        consonantJokerProb: 0.20
+        consonantJokerProb: 0.20,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music5.mp3",
+        background: "img/background5.jpg"
     },
     { 
         level: 6, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 650, 
-        scoreToComplete: 6000,
+        scoreToComplete: 20000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.25,
         vowelJokerProb: 0.35,
-        consonantJokerProb: 0.25
+        consonantJokerProb: 0.25,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music6.mp3",
+        background: "img/background6.jpg"
     },
     { 
         level: 7, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 600, 
-        scoreToComplete: 7000,
+        scoreToComplete: 28000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.30,
         vowelJokerProb: 0.35,
-        consonantJokerProb: 0.25
+        consonantJokerProb: 0.25,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music7.mp3",
+        background: "img/background7.jpg"
     },
     { 
         level: 8, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 550, 
-        scoreToComplete: 8000,
+        scoreToComplete: 30000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.30,
         vowelJokerProb: 0.35,
-        consonantJokerProb: 0.25
+        consonantJokerProb: 0.25,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music8.mp3",
+        background: "img/background8.jpg"
     },
     { 
         level: 9, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 500, 
-        scoreToComplete: 9000,
+        scoreToComplete: 35000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.35,
         vowelJokerProb: 0.40,
-        consonantJokerProb: 0.30
+        consonantJokerProb: 0.30,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music9.mp3",
+        background: "img/background9.jpg"
     },
     { 
         level: 10, 
         rows: 10, 
         columns: 8, 
         startDropInterval: 450, 
-        scoreToComplete: 10000,
+        scoreToComplete: 40000,
         syls1LetterProb: 0.15,
         syls3LetterProb: 0.35,
         vowelJokerProb: 0.40,
-        consonantJokerProb: 0.30
+        consonantJokerProb: 0.30,
+        // NUOVA AGGIUNTA: Tema del livello
+        music: "audio/music10.mp3",
+        background: "img/background10.jpg"
     }
     // Puoi aggiungere piÃ¹ livelli se necessario
 ];
@@ -224,6 +254,21 @@ function restoreGameFocus() {
         gameElement.focus();
     }
 }
+
+// NUOVA AGGIUNTA: Funzione per cambiare musica e sfondo del livello
+function applyLevelTheme(levelConfig) {
+    // Cambia la musica di sottofondo
+    const backgroundMusic = document.getElementById('background-music');
+    if (backgroundMusic && backgroundMusic.src !== levelConfig.music) {
+        backgroundMusic.src = levelConfig.music;
+        backgroundMusic.load();
+        backgroundMusic.play().catch(error => console.log("La riproduzione automatica è stata bloccata dal browser.", error));
+    }
+
+    // Cambia l'immagine di sfondo del body
+    document.body.style.backgroundImage = `url('${levelConfig.background}')`;
+}
+
 
 function randSyl() {
     const rand = Math.random();
@@ -719,6 +764,9 @@ function startNextLevel() {
     // Nascondi l'overlay
     ui.levelCompleteOverlay.style.display = "none";
     
+    // MODIFICATO: Applica musica e sfondo del nuovo livello
+    applyLevelTheme(levelConfig);
+
     // Aggiorna le variabili del livello
     ROWS = levelConfig.rows;
     COLS = levelConfig.columns;
@@ -1264,6 +1312,9 @@ function initializeActualGame() {
     // NUOVO: Inizializza il livello
     currentLevel = 1;
     const levelConfig = LEVEL_CONFIG[currentLevel - 1];
+
+    // MODIFICATO: Applica musica e sfondo del primo livello
+    applyLevelTheme(levelConfig);
     
     // Aggiorna le dimensioni
     ROWS = levelConfig.rows;
@@ -2215,6 +2266,10 @@ const PowerUpSystem = {
                 }
             `;
             document.head.appendChild(style);
+
+            if (typeof AudioSystem !== 'undefined' && AudioSystem.playBomb) {
+                AudioSystem.playBomb();
+            }
             
             // Rimuovi particella e stile dopo l'animazione
             setTimeout(() => {
@@ -2330,13 +2385,35 @@ const PowerUpSystem = {
         
         ui.lastWordVal.innerHTML = '<span style="color:gray;">Space Invaders disattivato.</span>';
         
+        // CORREZIONE: Crea un nuovo pezzo se non esiste, come fanno gli altri powerup
+        if (!gameIsOver && !cur) {
+            cur = newPiece();
+            
+            // Verifica che il pezzo possa essere posizionato
+            if (!canMove(cur, 0, 0)) {
+                draw();
+                handleGameOver();
+                return;
+            }
+            
+            // Imposta l'intervallo di caduta corretto
+            if (cur.isBomb) {
+                currentDropInterval = Math.floor(START_DROP / 3);
+            } else {
+                currentDropInterval = START_DROP;
+            }
+            
+            draw();
+        }
+        
         // Riprendi il gioco normale
-        if (!gameIsOver && !isAnimatingClear && cur && !gamePaused) {
+        if (!gameIsOver && !isAnimatingClear && cur && !gamePaused && !isChoiceActive) {
             clearInterval(gameLoopTimer);
             gameLoopTimer = setInterval(gameStep, currentDropInterval);
         }
         
-        draw();
+        // NUOVO: Ripristina il focus sulla griglia di gioco
+        setTimeout(() => restoreGameFocus(), 100);
     },
     activateShuffle() {
         if (this.activeStates.shuffle) return;
