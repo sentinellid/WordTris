@@ -203,6 +203,7 @@ let availableConsonants = [];
 // Riferimenti UI - AGGIORNATI per i nuovi modal
 const ui = { 
     s: document.getElementById("score"), 
+    ls: document.getElementById("levelscore"), 
     w: document.getElementById("words"), 
     p: document.getElementById("pieces"), 
     lastWordVal: document.getElementById("last-word-val"),
@@ -267,6 +268,8 @@ function applyLevelTheme(levelConfig) {
 
     // Cambia l'immagine di sfondo del body
     document.body.style.backgroundImage = `url('${levelConfig.background}')`;
+
+    updateScore();
 }
 
 
@@ -714,6 +717,7 @@ function processBoardAfterLock() {
 // Funzione per aggiornare punteggio e verificare avanzamento livello
 function updateScore() {
     ui.s.textContent = score;
+    ui.ls.textContent = scoreToCompleteLevel;
     ui.w.textContent = words;
     
     // Calcola il progresso del livello
